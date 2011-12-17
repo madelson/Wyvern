@@ -6,7 +6,6 @@ package compiler.lex;
 import java.io.StringReader;
 import java.util.*;
 
-
 import compiler.*;
 import compiler.canonicalize.Canonicalize;
 import compiler.parse.*;
@@ -125,135 +124,188 @@ public class Regex {
 	 * head state, which is returned. All new states and edges are recorded in
 	 * the corresponding collections.
 	 */
-	private static void fillInDfa(Symbol regexSymbol, DfaState startState,
-			DfaState endState, LinkedHashSet<DfaState> stateCollection,
-			Set<DfaEdge> edgeCollection) {
+	private static DfaState toNfa(Symbol regexSymbol, DfaState startState,
+			LinkedHashSet<DfaState> stateCollection, Set<DfaEdge> edgeCollection) {
 		// build the list by creating intermediate start and end states and
 		// filling the gaps
 		if (regexSymbol.type().equals(REGEX_LIST)) {
+			// for strict compliance with MCI, an empty list goes to
+			// start - epsilon -> head
+			if (regexSymbol.children().isEmpty()) {
+				DfaState headState = DfaState.create(stateCollection);
+				edgeCollection.add(new DfaEdge(startState, null, headState));
+				return headState;
+			}
+
+			// start - R1 - R2 ...
 			DfaState listHead = startState;
 			for (Symbol child : regexSymbol.children()) {
-				DfaState newListHead = DfaState.create(stateCollection);
-				fillInDfa(child, listHead, newListHead, stateCollection,
+				DfaState newListHead = toNfa(child, listHead, stateCollection,
 						edgeCollection);
 				listHead = newListHead;
 			}
 
-			// bridge the last gap to the end state with an epsilon transition
-			edgeCollection.add(new DfaEdge(listHead, null, endState));
+			return listHead;
 		}
 		// For a regex, we look at it's type and construct the appropriate DFA.
-		else if (regexSymbol.type().equals(REGEX)) {
+		if (regexSymbol.type().equals(REGEX)) {
 			SymbolType type;
 			switch (regexSymbol.children().size()) {
 			case 1:
 				type = regexSymbol.children().get(0).type();
 				if (type.equals(ESCAPED)) {
-					char escaped = regexSymbol.children().get(0).children().get(1).text().charAt(0),
-							equivalentValue;
-					switch (escaped) {
-					case 'n': // newline
-						equivalentValue = '\n';
-						break;
-					case 't':
-						equivalentValue = '\t';
-						break;
-					case 'r':
-						equivalentValue = '\r';
-						break;
-					default:
-						equivalentValue = escaped;
-						break;
-					}
+					char equivalentValue = getChar(regexSymbol.children()
+							.get(0));
+
 					// equivalent to 'equivalentCharacter'
-					fillInDfa(REGEX.createSymbol(CHAR.createSymbol(String.valueOf(equivalentValue), 1, 1)), startState, endState, stateCollection, edgeCollection);
-				} else if (type.equals(CHAR)) {
-					// start - ch -> end
-					edgeCollection.add(new DfaEdge(startState, CharSet
-							.single(regexSymbol.text().charAt(0)), endState));
-				} else if (type.equals(WILDCARD)) {
-					// start - any -> end
-					edgeCollection.add(new DfaEdge(startState, CharSet.all(),
-							endState));
-				} else {
-					throw Utils.err("Should never get here!");
+					return toNfa(
+							REGEX.createSymbol(CHAR.createSymbol(
+									String.valueOf(equivalentValue), 1, 1)),
+							startState, stateCollection, edgeCollection);
 				}
-				break;
+				if (type.equals(CHAR)) {
+					// start - ch -> head
+					DfaState headState = DfaState.create(stateCollection);
+					edgeCollection.add(new DfaEdge(startState, CharSet
+							.single(getChar(regexSymbol.children().get(0))),
+							headState));
+					return headState;
+				}
+				if (type.equals(WILDCARD)) {
+					// start - any -> head
+					DfaState headState = DfaState.create(stateCollection);
+					edgeCollection.add(new DfaEdge(startState, CharSet.all(),
+							headState));
+					return headState;
+				}
+				throw Utils.err("Should never get here!");
 			case 2:
 				type = regexSymbol.children().get(1).type();
 				if (type.equals(ZERO_OR_ONE)) {
 					// same as R | ()
-					fillInDfa(REGEX.createSymbol(regexSymbol.children().get(0), OR
-							.createSymbol("FAKE", 1, 1), REGEX.createSymbol(
-							LPAREN.createSymbol("FAKE", 1, 1),
-							REGEX_LIST.createSymbol(),
-							RPAREN.createSymbol("FAKE", 1, 1))), startState,
-							endState, stateCollection, edgeCollection);
-				} else if (type.equals(ONE_PLUS)) {
+					return toNfa(REGEX.createSymbol(
+							regexSymbol.children().get(0), OR.createSymbol(
+									"FAKE", 1, 1), REGEX.createSymbol(
+									LPAREN.createSymbol("FAKE", 1, 1),
+									REGEX_LIST.createSymbol(),
+									RPAREN.createSymbol("FAKE", 1, 1))),
+							startState, stateCollection, edgeCollection);
+				}
+				if (type.equals(ONE_PLUS)) {
 					// same as RR*
 					Symbol innerRegex = regexSymbol.children().get(0);
-					fillInDfa(REGEX_LIST.createSymbol(
-							innerRegex,
-							REGEX.createSymbol(innerRegex,
-									KLEENE_CLOSURE.createSymbol("FAKE", 1, 1))),
-							startState, endState, stateCollection,
-							edgeCollection);
-				} else if (type.equals(KLEENE_CLOSURE)) {
-					/*
-					 * start - epsilon -> end
-					 * AND end - R -> end 
-					 */
-					edgeCollection.add(new DfaEdge(startState, null, endState));
-					fillInDfa(regexSymbol.children().get(0), endState, endState, stateCollection, edgeCollection);
-				} else {
-					throw Utils.err("Should never get here!");
+					return toNfa(
+							REGEX_LIST.createSymbol(innerRegex, REGEX
+									.createSymbol(innerRegex, KLEENE_CLOSURE
+											.createSymbol("FAKE", 1, 1))),
+							startState, stateCollection, edgeCollection);
 				}
-				break;
+				if (type.equals(KLEENE_CLOSURE)) {
+					/*
+					 * start - epsilon -> head AND head - R - epsilon -> head
+					 */
+					DfaState headState = DfaState.create(stateCollection);
+					DfaState innerHeadState = toNfa(
+							regexSymbol.children().get(0), headState,
+							stateCollection, edgeCollection);
+					edgeCollection
+							.add(new DfaEdge(startState, null, headState));
+					edgeCollection.add(new DfaEdge(innerHeadState, null,
+							headState));
+					return headState;
+				}
+				throw Utils.err("Should never get here!");
 			case 3:
 				type = regexSymbol.children().get(1).type();
 				if (type.equals(OR)) {
 					/*
-					 * start - R1 -> end
-					 * OR start - R2 -> end
+					 * start - epsilon -> tail AND ( tail - R1 - epsilon -> head
+					 * OR tail - R2 - epsilon -> head )
 					 */
-					fillInDfa(regexSymbol.children().get(0), startState, endState, stateCollection, edgeCollection);
-					fillInDfa(regexSymbol.children().get(2), startState, endState, stateCollection, edgeCollection);
-				} else if (type.equals(REGEX_LIST)) {
-					// recurse on the list
-					fillInDfa(regexSymbol.children().get(1), startState, endState, stateCollection, edgeCollection);
-				} else if (type.equals(SET_LIST)) {					
-					// recurse on each set
-					for (Symbol setChild : regexSymbol.children().get(1).children()) {
-						fillInDfa(setChild, startState, endState, stateCollection, edgeCollection);
-					}
-				} else {
-					throw Utils.err("Should never get here!");
+					DfaState tailState = DfaState.create(stateCollection);
+					DfaState headState = DfaState.create(stateCollection);
+					DfaState innerHeadState1 = toNfa(regexSymbol.children()
+							.get(0), tailState, stateCollection, edgeCollection);
+					DfaState innerHeadState2 = toNfa(regexSymbol.children()
+							.get(2), tailState, stateCollection, edgeCollection);
+					edgeCollection
+							.add(new DfaEdge(startState, null, tailState));
+					edgeCollection.add(new DfaEdge(innerHeadState1, null,
+							headState));
+					edgeCollection.add(new DfaEdge(innerHeadState2, null,
+							headState));
+					return headState;
 				}
-				break;
+				if (type.equals(REGEX_LIST)) {
+					// recurse on the list
+					return toNfa(regexSymbol.children().get(1), startState,
+							stateCollection, edgeCollection);
+				}
+				if (type.equals(SET_LIST)) {
+					/*
+					 * start - epsilon -> tail AND ( tail - S1 -> head OR tail -
+					 * S2 -> head ... )
+					 */
+					DfaState tailState = DfaState.create(stateCollection);
+					DfaState headState = DfaState.create(stateCollection);
+					for (Symbol setChild : regexSymbol.children().get(1)
+							.children()) {
+						Symbol setSymbol = setChild.children().get(0);
+						CharSet charSet;
+						if (setSymbol.type().equals(CHAR)) {
+							// tail - ch -> head
+							charSet = CharSet.single(getChar(setSymbol));
+						} else if (setSymbol.type().equals(ESCAPED)) {
+							// tail - \ch -> head
+							charSet = CharSet.single(getChar(setSymbol));
+						} else if (setSymbol.type().equals(RANGE)) {
+							// start - [chars] -> end
+							char min = getChar(setSymbol.children().get(0)), max = getChar(setSymbol
+									.children().get(2));
+							charSet = CharSet.range(min, max);
+						} else {
+							throw Utils.err("Should never get here!");
+						}
+						edgeCollection.add(new DfaEdge(tailState, charSet,
+								headState));
+					}
+					edgeCollection
+							.add(new DfaEdge(startState, null, tailState));
+					return headState;
+				}
+				throw Utils.err("Should never get here!");
 			default:
 				throw Utils.err("Should never get here!");
 			}
 		}
-		// For a set, we look at it's type and construct the appropriate DFA
-		else if (regexSymbol.type().equals(SET)) {
-			Symbol setSymbol = regexSymbol.children().get(0);
-			if (setSymbol.type().equals(CHAR)) {
-				// same as a single-char regex
-				fillInDfa(REGEX.createSymbol(setSymbol), startState, endState, stateCollection, edgeCollection);
-			} else if (setSymbol.type().equals(ESCAPED)) {
-				// same as an escape regex
-				fillInDfa(REGEX.createSymbol(setSymbol), startState, endState, stateCollection, edgeCollection);
-			} else if (setSymbol.type().equals(RANGE)) {
-				// start - [chars] -> end
-				char min = setSymbol.children().get(0).text().charAt(0),
-						max = setSymbol.children().get(2).text().charAt(1);				
-				edgeCollection.add(new DfaEdge(startState, CharSet.range(min, max), endState));
-			} else {
-				throw Utils.err("Should never get here!");
-			}
-		} else {
-			throw Utils.err("Should never get here!");
+		throw Utils.err("Should never get here!");
+	}
+
+	private static char getChar(Symbol singleCharSymbol) {
+		if (singleCharSymbol.type().equals(CHAR)) {
+			return singleCharSymbol.text().charAt(0);
 		}
+		if (singleCharSymbol.type().equals(ESCAPED)) {
+			char escapedChar = getChar(singleCharSymbol.children().get(1)), equivalentValue;
+			switch (escapedChar) {
+			case 'n': // newline
+				equivalentValue = '\n';
+				break;
+			case 't':
+				equivalentValue = '\t';
+				break;
+			case 'r':
+				equivalentValue = '\r';
+				break;
+			default:
+				equivalentValue = escapedChar;
+				break;
+			}
+
+			return equivalentValue;
+		}
+
+		throw Utils.err("Should never get here!");
 	}
 
 	private static class DfaEdge extends
@@ -310,13 +362,13 @@ public class Regex {
 
 			};
 		}
-		
+
 		public static CharSet union(final Iterable<CharSet> charSets) {
 			CharSet unionSet = empty();
 			for (CharSet charSet : charSets) {
 				unionSet = charSet.union(unionSet);
 			}
-			
+
 			return unionSet;
 		}
 
@@ -356,7 +408,7 @@ public class Regex {
 
 			};
 		}
-		
+
 		public static CharSet empty() {
 			return new CharSet() {
 
@@ -365,7 +417,7 @@ public class Regex {
 					return false;
 				}
 
-			};			
+			};
 		}
 	}
 
