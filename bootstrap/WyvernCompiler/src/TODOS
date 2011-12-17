@@ -1,0 +1,7 @@
+* Universal DFA class with compile() method
+* Visitor pattern abstraction with replacePattern methods
+* Regex simplification (e. g. remove ?, +), replace some escapes
+* Error handling in parser
+* createVirtualSymbol in SymbolType (affects printing as well)
+* support more weird escaped characters in regex (see java regex spec)
+* special (multichar) characters in ranges
