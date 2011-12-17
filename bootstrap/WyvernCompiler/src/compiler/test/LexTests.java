@@ -5,9 +5,11 @@ package compiler.test;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import compiler.Context;
 import compiler.Symbol;
@@ -70,7 +72,7 @@ public class LexTests {
 
 	}
 
-	public static void regexTest() {
+	public static void basicRegexTest() {
 		Symbol parseTree = Regex.canonicalize(Regex.parse("a").parseTree());
 		Utils.check(parseTree.children().get(0).children().get(0).type()
 				.equals(Regex.CHAR));
@@ -79,19 +81,101 @@ public class LexTests {
 		parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
 		Utils.check(parseTree.type().equals(Regex.REGEX_LIST));
 		Utils.check(parseTree.children().size() == 5);
-		Utils.check(parseTree.children().get(0).children().get(0).children().get(1).type().equals(Regex.SET_LIST));
-		
+		Utils.check(parseTree.children().get(0).children().get(0).children()
+				.get(1).type().equals(Regex.SET_LIST));
+
 		regex = "\\\\.";
 		parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
 		Utils.check(parseTree.type().equals(Regex.REGEX_LIST));
-		Utils.check(parseTree.children().get(0).children().get(0).type().equals(Regex.ESCAPED));
-		Utils.check(parseTree.children().get(1).children().get(0).type().equals(Regex.WILDCARD));
+		Utils.check(parseTree.children().get(0).children().get(0).type()
+				.equals(Regex.ESCAPED));
+		Utils.check(parseTree.children().get(1).children().get(0).type()
+				.equals(Regex.WILDCARD));
+	}
+
+	public static void regexNfaTest() {
+		LinkedHashSet<Regex.DfaState> stateCollection = Utils.set();
+		Set<Regex.DfaEdge> edgeCollection = Utils.set();
+
+		createNfa("a", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 3, 2, 1);
+
+		createNfa("", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 3, 2, 2);
+
+		createNfa("a|b", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 6, 6, 4);
+
+		createNfa("ab", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 4, 3, 1);
+
+		createNfa("a*", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 4, 4, 3);
+
+		createNfa("a+", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 5, 5, 3);
+		
+		createNfa("a?", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 6, 6, 5);
+
+		createNfa("[abc]", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 4, 5, 2);
+		
+		createNfa("[a-z]", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 4, 3, 2);
+		
+		createNfa("\\n", stateCollection, edgeCollection);
+		checkNfa(stateCollection, edgeCollection, 3, 2, 1);		
+	}
+
+	private static Regex.DfaState createNfa(String regex,
+			LinkedHashSet<Regex.DfaState> stateCollection,
+			Set<Regex.DfaEdge> edgeCollection) {
+		stateCollection.clear();
+		edgeCollection.clear();
+
+		Symbol parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
+		System.out.println("Parse tree: " + parseTree);
+
+		return Regex.nfaFor(new Context().getTerminalSymbolType("TOKEN"),
+				parseTree, stateCollection, edgeCollection);
+	}
+
+	private static void checkNfa(LinkedHashSet<Regex.DfaState> stateCollection,
+			Set<Regex.DfaEdge> edgeCollection, int expectedStateCount,
+			int expectedEdgeCount, int expectedEpsilonEdgeCount) {
+		System.out.println(stateCollection);
+		System.out.println(edgeCollection);
+		System.out.println();
+		Utils.check(stateCollection.size() == expectedStateCount,
+				"Bad state count!");
+		Utils.check(edgeCollection.size() == expectedEdgeCount,
+				"Bad edge count!");
+
+		int epsilonEdgeCount = 0;
+		for (Regex.DfaEdge edge : edgeCollection) {
+			if (edge.character() == null) {
+				epsilonEdgeCount++;
+			}
+		}
+		Utils.check(epsilonEdgeCount == expectedEpsilonEdgeCount,
+				"Bad epsilon edge count!");
+
+		int acceptCount = 0;
+		for (Regex.DfaState state : stateCollection) {
+			if (state.symbolType() != null) {
+				acceptCount++;
+			}
+		}
+		Utils.check(acceptCount == 1, "Bad accept count!");
 	}
 
 	public static void main(String[] args) {
 		charLexerGeneratorTest();
 
-		regexTest();
+		basicRegexTest();
+
+		regexNfaTest();
 
 		System.out.println("All lex tests passed!");
 	}

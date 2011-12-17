@@ -49,7 +49,7 @@ public class Regex {
 
 		for (SymbolType terminalType : Utils.set(KLEENE_CLOSURE, OR, ESCAPE,
 				LPAREN, RPAREN, ZERO_OR_ONE, ONE_PLUS, RANGE_OPERATOR,
-				LBRACKET, RBRACKET, WILDCARD)) {
+				LBRACKET, RBRACKET, WILDCARD, CHAR)) {
 			productions.add(new Production(ESCAPED, ESCAPE, terminalType));
 		}
 
@@ -117,6 +117,16 @@ public class Regex {
 		listTypes.put(SET_LIST, null);
 
 		return Canonicalize.flattenLists(regexParseTree, listTypes, false);
+	}
+	
+	public static DfaState nfaFor(SymbolType symbolType, Symbol regexSymbol, LinkedHashSet<DfaState> stateCollection, Set<DfaEdge> edgeCollection) {
+		DfaState startState = DfaState.create(stateCollection);
+		DfaState acceptState = new DfaState(String.valueOf(stateCollection.size()), symbolType);
+		stateCollection.add(acceptState);
+		DfaState headState = toNfa(regexSymbol, startState, stateCollection, edgeCollection);
+		edgeCollection.add(new DfaEdge(headState, null, acceptState));
+		
+		return startState;
 	}
 
 	/**
@@ -282,9 +292,6 @@ public class Regex {
 	}
 
 	private static char getChar(Symbol singleCharSymbol) {
-		if (singleCharSymbol.type().equals(CHAR)) {
-			return singleCharSymbol.text().charAt(0);
-		}
 		if (singleCharSymbol.type().equals(ESCAPED)) {
 			char escapedChar = getChar(singleCharSymbol.children().get(1)), equivalentValue;
 			switch (escapedChar) {
@@ -304,11 +311,14 @@ public class Regex {
 
 			return equivalentValue;
 		}
-
-		throw Utils.err("Should never get here!");
+		
+		// sanity check, until we support more complex character types
+		Utils.check(singleCharSymbol.text().length() == 1);
+			
+		return singleCharSymbol.text().charAt(0);
 	}
 
-	private static class DfaEdge extends
+	public static class DfaEdge extends
 			Tuples.Trio<DfaState, CharSet, DfaState> {
 		public DfaEdge(DfaState from, CharSet charSet, DfaState to) {
 			super(from, charSet, to);
@@ -327,7 +337,7 @@ public class Regex {
 		}
 	}
 
-	private static class DfaState extends Tuples.Duo<String, SymbolType> {
+	public static class DfaState extends Tuples.Duo<String, SymbolType> {
 		public DfaState(String name, SymbolType symbolType) {
 			super(name, symbolType);
 		}
@@ -359,6 +369,11 @@ public class Regex {
 				public boolean contains(char ch) {
 					return this.contains(ch) || that.contains(ch);
 				}
+				
+				@Override
+				public String toString() {
+					return this + " U " + that;
+				}
 
 			};
 		}
@@ -379,7 +394,11 @@ public class Regex {
 				public boolean contains(char ch) {
 					return ch == member;
 				}
-
+				
+				@Override
+				public String toString() {
+					return String.valueOf(member);
+				}
 			};
 		}
 
@@ -395,6 +414,10 @@ public class Regex {
 					return min <= ch && max >= ch;
 				}
 
+				@Override
+				public String toString() {
+					return min + " - " + max;
+				}
 			};
 		}
 
@@ -406,6 +429,10 @@ public class Regex {
 					return true;
 				}
 
+				@Override
+				public String toString() {
+					return "any";
+				}
 			};
 		}
 
@@ -417,64 +444,11 @@ public class Regex {
 					return false;
 				}
 
-			};
-		}
-	}
-
-	private static class CharRangeSet extends AbstractSet<Character> {
-		private final char min, max;
-
-		public CharRangeSet(char min, char max) {
-			this.min = min;
-			this.max = max;
-
-			Utils.check(
-					min <= max,
-					"The character at the beginning of a range must come before the character at the end of it");
-		}
-
-		@Override
-		public Iterator<Character> iterator() {
-			return new Iterator<Character>() {
-				private char current = CharRangeSet.this.min;
-				private boolean isDone = false;
-
 				@Override
-				public boolean hasNext() {
-					return !this.isDone;
-				}
-
-				@Override
-				public Character next() {
-					if (this.isDone) {
-						throw new NoSuchElementException();
-					}
-
-					this.isDone = this.current >= CharRangeSet.this.max;
-					return this.current++;
-				}
-
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
+				public String toString() {
+					return "{ }";
 				}
 			};
-		}
-
-		@Override
-		public boolean contains(Object obj) {
-			if (obj instanceof Character) {
-				char value = ((Character) obj).charValue();
-
-				return value >= this.min && value <= this.max;
-			}
-
-			return false;
-		}
-
-		@Override
-		public int size() {
-			return this.max - this.min + 1;
 		}
 	}
 }
