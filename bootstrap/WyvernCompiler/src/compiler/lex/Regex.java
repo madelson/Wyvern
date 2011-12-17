@@ -6,9 +6,9 @@ package compiler.lex;
 import java.io.StringReader;
 import java.util.*;
 
-import canonicalize.Canonicalize;
 
 import compiler.*;
+import compiler.canonicalize.Canonicalize;
 import compiler.parse.*;
 import compiler.parse.Precedence.ProductionPrecedence;
 

@@ -5,8 +5,8 @@ package compiler.test;
 
 import java.util.Collections;
 
-import canonicalize.Canonicalize;
 import compiler.*;
+import compiler.canonicalize.Canonicalize;
 
 /**
  * @author Michael
