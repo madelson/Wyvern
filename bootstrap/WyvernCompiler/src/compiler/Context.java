@@ -279,9 +279,15 @@ public class Context {
 					public String toString() {
 						StringBuilder sb = new StringBuilder();
 						sb.append(this.type().name()).append('(');
-						for (Symbol child : this.children())
+						for (Symbol child : this.children()) {
 							sb.append(child).append(' ');
-						sb.setCharAt(sb.length() - 1, ')');
+						}
+						if (sb.charAt(sb.length() - 1) == ' ') {
+							sb.setCharAt(sb.length() - 1, ')');
+						}
+						else {
+							sb.append(')');
+						}
 
 						return sb.toString();
 					}
