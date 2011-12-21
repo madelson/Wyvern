@@ -5,7 +5,7 @@ package compiler.test;
 
 /**
  * @author Michael
- *
+ * 
  */
 public class AllTests {
 
@@ -13,7 +13,7 @@ public class AllTests {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		long start = System.currentTimeMillis();		
+		long originalStart = System.currentTimeMillis(), start = originalStart;
 		BasicTests.main(args);
 		printTime(start);
 		
@@ -26,12 +26,20 @@ public class AllTests {
 		printTime(start);
 		
 		start = System.currentTimeMillis();
+		AutomataTests.main(args);
+		printTime(start);
+		
+		start = System.currentTimeMillis();
 		LexTests.main(args);
 		printTime(start);
+		
+		System.out.println("\nAll tests passed!");
+		printTime(originalStart);
 	}
-	
+
 	private static void printTime(long start) {
-		System.out.println(String.format("(%s seconds)", (System.currentTimeMillis() - start) / 1000.0));
+		System.out.println(String.format("(%s seconds)",
+				(System.currentTimeMillis() - start) / 1000.0));
 	}
 
 }

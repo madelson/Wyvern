@@ -5,7 +5,6 @@ package compiler.test;
 
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
