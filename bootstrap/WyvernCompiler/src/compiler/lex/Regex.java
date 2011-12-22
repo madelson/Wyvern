@@ -4,12 +4,28 @@
 package compiler.lex;
 
 import java.io.StringReader;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
-import compiler.*;
+import compiler.Context;
+import compiler.Symbol;
+import compiler.SymbolType;
+import compiler.Utils;
+import compiler.automata.FiniteAutomaton;
+import compiler.automata.SetFunction;
+import compiler.automata.State;
 import compiler.canonicalize.Canonicalize;
-import compiler.parse.*;
+import compiler.parse.Associativity;
+import compiler.parse.Grammar;
+import compiler.parse.LALRGenerator;
+import compiler.parse.Parser;
+import compiler.parse.Precedence;
 import compiler.parse.Precedence.ProductionPrecedence;
+import compiler.parse.Production;
 
 /**
  * @author Michael
@@ -118,40 +134,44 @@ public class Regex {
 
 		return Canonicalize.flattenLists(regexParseTree, listTypes, false);
 	}
-	
-	public static DfaState nfaFor(SymbolType symbolType, Symbol regexSymbol, LinkedHashSet<DfaState> stateCollection, Set<DfaEdge> edgeCollection) {
-		DfaState startState = DfaState.create(stateCollection);
-		DfaState acceptState = new DfaState(String.valueOf(stateCollection.size()), symbolType);
-		stateCollection.add(acceptState);
-		DfaState headState = toNfa(regexSymbol, startState, stateCollection, edgeCollection);
-		edgeCollection.add(new DfaEdge(headState, null, acceptState));
-		
+
+	/**
+	 * Builds an NFA for the given accept value and regex, and returns the start
+	 * state (if the builder already has states, then this will not be the same
+	 * as the eventual automata's start state).
+	 */
+	public static <T> State<T> buildNfaFor(
+			FiniteAutomaton.Builder<T, Character> builder, T acceptValue,
+			Symbol regexSymbol) {
+		State<T> startState = builder.newState();
+		State<T> acceptState = builder.newState(acceptValue);
+		State<T> headState = buildNfa(regexSymbol, startState, builder);
+		builder.createEdge(headState, acceptState);
+
 		return startState;
 	}
 
 	/**
 	 * Creates an NFA with a tail leading from the provided start state to a
-	 * head state, which is returned. All new states and edges are recorded in
-	 * the corresponding collections.
+	 * head state, which is returned.
 	 */
-	private static DfaState toNfa(Symbol regexSymbol, DfaState startState,
-			LinkedHashSet<DfaState> stateCollection, Set<DfaEdge> edgeCollection) {
+	private static <T> State<T> buildNfa(Symbol regexSymbol,
+			State<T> startState, FiniteAutomaton.Builder<T, Character> builder) {
 		// build the list by creating intermediate start and end states and
 		// filling the gaps
 		if (regexSymbol.type().equals(REGEX_LIST)) {
 			// for strict compliance with MCI, an empty list goes to
 			// start - epsilon -> head
 			if (regexSymbol.children().isEmpty()) {
-				DfaState headState = DfaState.create(stateCollection);
-				edgeCollection.add(new DfaEdge(startState, null, headState));
+				State<T> headState = builder.newState();
+				builder.createEdge(startState, headState);
 				return headState;
 			}
 
 			// start - R1 - R2 ...
-			DfaState listHead = startState;
+			State<T> listHead = startState;
 			for (Symbol child : regexSymbol.children()) {
-				DfaState newListHead = toNfa(child, listHead, stateCollection,
-						edgeCollection);
+				State<T> newListHead = buildNfa(child, listHead, builder);
 				listHead = newListHead;
 			}
 
@@ -168,24 +188,24 @@ public class Regex {
 							.get(0));
 
 					// equivalent to 'equivalentCharacter'
-					return toNfa(
+					return buildNfa(
 							REGEX.createSymbol(CHAR.createSymbol(
 									String.valueOf(equivalentValue), 1, 1)),
-							startState, stateCollection, edgeCollection);
+							startState, builder);
 				}
 				if (type.equals(CHAR)) {
 					// start - ch -> head
-					DfaState headState = DfaState.create(stateCollection);
-					edgeCollection.add(new DfaEdge(startState, CharSet
-							.single(getChar(regexSymbol.children().get(0))),
-							headState));
+					State<T> headState = builder.newState();
+					builder.createEdge(startState, SetFunction
+							.singleton(getChar(regexSymbol.children().get(0))),
+							headState);
 					return headState;
 				}
 				if (type.equals(WILDCARD)) {
 					// start - any -> head
-					DfaState headState = DfaState.create(stateCollection);
-					edgeCollection.add(new DfaEdge(startState, CharSet.all(),
-							headState));
+					State<T> headState = builder.newState();
+					builder.createEdge(startState,
+							SetFunction.<Character> all(), headState);
 					return headState;
 				}
 				throw Utils.err("Should never get here!");
@@ -193,35 +213,31 @@ public class Regex {
 				type = regexSymbol.children().get(1).type();
 				if (type.equals(ZERO_OR_ONE)) {
 					// same as R | ()
-					return toNfa(REGEX.createSymbol(
-							regexSymbol.children().get(0), OR.createSymbol(
-									"FAKE", 1, 1), REGEX.createSymbol(
-									LPAREN.createSymbol("FAKE", 1, 1),
+					return buildNfa(REGEX.createSymbol(regexSymbol.children()
+							.get(0), OR.createSymbol("FAKE", 1, 1), REGEX
+							.createSymbol(LPAREN.createSymbol("FAKE", 1, 1),
 									REGEX_LIST.createSymbol(),
 									RPAREN.createSymbol("FAKE", 1, 1))),
-							startState, stateCollection, edgeCollection);
+							startState, builder);
 				}
 				if (type.equals(ONE_PLUS)) {
 					// same as RR*
 					Symbol innerRegex = regexSymbol.children().get(0);
-					return toNfa(
+					return buildNfa(
 							REGEX_LIST.createSymbol(innerRegex, REGEX
 									.createSymbol(innerRegex, KLEENE_CLOSURE
 											.createSymbol("FAKE", 1, 1))),
-							startState, stateCollection, edgeCollection);
+							startState, builder);
 				}
 				if (type.equals(KLEENE_CLOSURE)) {
 					/*
 					 * start - epsilon -> head AND head - R - epsilon -> head
 					 */
-					DfaState headState = DfaState.create(stateCollection);
-					DfaState innerHeadState = toNfa(
-							regexSymbol.children().get(0), headState,
-							stateCollection, edgeCollection);
-					edgeCollection
-							.add(new DfaEdge(startState, null, headState));
-					edgeCollection.add(new DfaEdge(innerHeadState, null,
-							headState));
+					State<T> headState = builder.newState();
+					State<T> innerHeadState = buildNfa(regexSymbol.children()
+							.get(0), headState, builder);
+					builder.createEdge(startState, headState);
+					builder.createEdge(innerHeadState, headState);
 					return headState;
 				}
 				throw Utils.err("Should never get here!");
@@ -232,55 +248,50 @@ public class Regex {
 					 * start - epsilon -> tail AND ( tail - R1 - epsilon -> head
 					 * OR tail - R2 - epsilon -> head )
 					 */
-					DfaState tailState = DfaState.create(stateCollection);
-					DfaState headState = DfaState.create(stateCollection);
-					DfaState innerHeadState1 = toNfa(regexSymbol.children()
-							.get(0), tailState, stateCollection, edgeCollection);
-					DfaState innerHeadState2 = toNfa(regexSymbol.children()
-							.get(2), tailState, stateCollection, edgeCollection);
-					edgeCollection
-							.add(new DfaEdge(startState, null, tailState));
-					edgeCollection.add(new DfaEdge(innerHeadState1, null,
-							headState));
-					edgeCollection.add(new DfaEdge(innerHeadState2, null,
-							headState));
+					State<T> tailState = builder.newState();
+					State<T> headState = builder.newState();
+					State<T> innerHeadState1 = buildNfa(regexSymbol.children()
+							.get(0), tailState, builder);
+					State<T> innerHeadState2 = buildNfa(regexSymbol.children()
+							.get(2), tailState, builder);
+					builder.createEdge(startState, tailState);
+					builder.createEdge(innerHeadState1, headState);
+					builder.createEdge(innerHeadState2, headState);
 					return headState;
 				}
 				if (type.equals(REGEX_LIST)) {
 					// recurse on the list
-					return toNfa(regexSymbol.children().get(1), startState,
-							stateCollection, edgeCollection);
+					return buildNfa(regexSymbol.children().get(1), startState,
+							builder);
 				}
 				if (type.equals(SET_LIST)) {
 					/*
 					 * start - epsilon -> tail AND ( tail - S1 -> head OR tail -
 					 * S2 -> head ... )
 					 */
-					DfaState tailState = DfaState.create(stateCollection);
-					DfaState headState = DfaState.create(stateCollection);
+					State<T> tailState = builder.newState();
+					State<T> headState = builder.newState();
 					for (Symbol setChild : regexSymbol.children().get(1)
 							.children()) {
 						Symbol setSymbol = setChild.children().get(0);
-						CharSet charSet;
+						SetFunction<Character> charSet;
 						if (setSymbol.type().equals(CHAR)) {
 							// tail - ch -> head
-							charSet = CharSet.single(getChar(setSymbol));
+							charSet = SetFunction.singleton(getChar(setSymbol));
 						} else if (setSymbol.type().equals(ESCAPED)) {
 							// tail - \ch -> head
-							charSet = CharSet.single(getChar(setSymbol));
+							charSet = SetFunction.singleton(getChar(setSymbol));
 						} else if (setSymbol.type().equals(RANGE)) {
 							// start - [chars] -> end
 							char min = getChar(setSymbol.children().get(0)), max = getChar(setSymbol
 									.children().get(2));
-							charSet = CharSet.range(min, max);
+							charSet = SetFunction.range(min, max);
 						} else {
 							throw Utils.err("Should never get here!");
 						}
-						edgeCollection.add(new DfaEdge(tailState, charSet,
-								headState));
+						builder.createEdge(tailState, charSet, headState);
 					}
-					edgeCollection
-							.add(new DfaEdge(startState, null, tailState));
+					builder.createEdge(startState, tailState);
 					return headState;
 				}
 				throw Utils.err("Should never get here!");
@@ -311,144 +322,10 @@ public class Regex {
 
 			return equivalentValue;
 		}
-		
+
 		// sanity check, until we support more complex character types
 		Utils.check(singleCharSymbol.text().length() == 1);
-			
+
 		return singleCharSymbol.text().charAt(0);
-	}
-
-	public static class DfaEdge extends
-			Tuples.Trio<DfaState, CharSet, DfaState> {
-		public DfaEdge(DfaState from, CharSet charSet, DfaState to) {
-			super(from, charSet, to);
-		}
-
-		public DfaState from() {
-			return this.item1();
-		}
-
-		public CharSet character() {
-			return this.item2();
-		}
-
-		public DfaState to() {
-			return this.item3();
-		}
-	}
-
-	public static class DfaState extends Tuples.Duo<String, SymbolType> {
-		public DfaState(String name, SymbolType symbolType) {
-			super(name, symbolType);
-		}
-
-		public String name() {
-			return this.item1();
-		}
-
-		public SymbolType symbolType() {
-			return this.item2();
-		}
-
-		public static DfaState create(Set<DfaState> stateCollection) {
-			DfaState newState = new DfaState(String.valueOf(stateCollection
-					.size()), null);
-			stateCollection.add(newState);
-
-			return newState;
-		}
-	}
-
-	public static abstract class CharSet {
-		public abstract boolean contains(char ch);
-
-		public CharSet union(final CharSet that) {
-			return new CharSet() {
-
-				@Override
-				public boolean contains(char ch) {
-					return this.contains(ch) || that.contains(ch);
-				}
-				
-				@Override
-				public String toString() {
-					return this + " U " + that;
-				}
-
-			};
-		}
-
-		public static CharSet union(final Iterable<CharSet> charSets) {
-			CharSet unionSet = empty();
-			for (CharSet charSet : charSets) {
-				unionSet = charSet.union(unionSet);
-			}
-
-			return unionSet;
-		}
-
-		public static CharSet single(final char member) {
-			return new CharSet() {
-
-				@Override
-				public boolean contains(char ch) {
-					return ch == member;
-				}
-				
-				@Override
-				public String toString() {
-					return String.valueOf(member);
-				}
-			};
-		}
-
-		public static CharSet range(final char min, final char max) {
-			Utils.check(
-					min <= max,
-					"The character at the beginning of a range must come before the character at the end of it");
-
-			return new CharSet() {
-
-				@Override
-				public boolean contains(char ch) {
-					return min <= ch && max >= ch;
-				}
-
-				@Override
-				public String toString() {
-					return min + " - " + max;
-				}
-			};
-		}
-
-		public static CharSet all() {
-			return new CharSet() {
-
-				@Override
-				public boolean contains(char ch) {
-					return true;
-				}
-
-				@Override
-				public String toString() {
-					return "any";
-				}
-			};
-		}
-
-		public static CharSet empty() {
-			return new CharSet() {
-
-				@Override
-				public boolean contains(char ch) {
-					return false;
-				}
-
-				@Override
-				public String toString() {
-					return "{ }";
-				}
-			};
-		}
 	}
 }

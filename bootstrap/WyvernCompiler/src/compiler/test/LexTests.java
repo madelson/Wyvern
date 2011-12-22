@@ -14,6 +14,9 @@ import compiler.Context;
 import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Utils;
+import compiler.automata.Edge;
+import compiler.automata.FiniteAutomaton;
+import compiler.automata.State;
 import compiler.lex.CharLexerGenerator;
 import compiler.lex.Lexer;
 import compiler.lex.LexerAction;
@@ -93,67 +96,64 @@ public class LexTests {
 	}
 
 	public static void regexNfaTest() {
-		LinkedHashSet<Regex.DfaState> stateCollection = Utils.set();
-		Set<Regex.DfaEdge> edgeCollection = Utils.set();
+		FiniteAutomaton<SymbolType, Character> auto;
 
-		createNfa("a", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 3, 2, 1);
+		auto = createSimpleNfa("a");
+		checkNfa(auto, 3, 2, 1);
 
-		createNfa("", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 3, 2, 2);
+		auto = createSimpleNfa("");
+		checkNfa(auto, 3, 2, 2);
 
-		createNfa("a|b", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 6, 6, 4);
+		auto = createSimpleNfa("a|b");
+		checkNfa(auto, 6, 6, 4);
 
-		createNfa("ab", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 4, 3, 1);
+		auto = createSimpleNfa("ab");
+		checkNfa(auto, 4, 3, 1);
 
-		createNfa("a*", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 4, 4, 3);
+		auto = createSimpleNfa("a*");
+		checkNfa(auto, 4, 4, 3);
 
-		createNfa("a+", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 5, 5, 3);
-		
-		createNfa("a?", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 6, 6, 5);
+		auto = createSimpleNfa("a+");
+		checkNfa(auto, 5, 5, 3);
 
-		createNfa("[abc]", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 4, 5, 2);
-		
-		createNfa("[a-z]", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 4, 3, 2);
-		
-		createNfa("\\n", stateCollection, edgeCollection);
-		checkNfa(stateCollection, edgeCollection, 3, 2, 1);		
+		auto = createSimpleNfa("a?");
+		checkNfa(auto, 6, 6, 5);
+
+		auto = createSimpleNfa("[abc]");
+		checkNfa(auto, 4, 5, 2);
+
+		auto = createSimpleNfa("[a-z]");
+		checkNfa(auto, 4, 3, 2);
+
+		auto = createSimpleNfa("\\n");
+		checkNfa(auto, 3, 2, 1);
 	}
 
-	private static Regex.DfaState createNfa(String regex,
-			LinkedHashSet<Regex.DfaState> stateCollection,
-			Set<Regex.DfaEdge> edgeCollection) {
-		stateCollection.clear();
-		edgeCollection.clear();
-
+	private static FiniteAutomaton<SymbolType, Character> createSimpleNfa(String regex) {
 		Symbol parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
-		System.out.println("Parse tree: " + parseTree);
+		FiniteAutomaton.Builder<SymbolType, Character> builder = FiniteAutomaton
+				.<SymbolType, Character> nfaBuilder();
 
-		return Regex.nfaFor(new Context().getTerminalSymbolType("TOKEN"),
-				parseTree, stateCollection, edgeCollection);
+		Regex.buildNfaFor(builder,
+				new Context().getTerminalSymbolType("TOKEN"), parseTree);
+		return builder.toFiniteAutomaton();
 	}
 
-	private static void checkNfa(LinkedHashSet<Regex.DfaState> stateCollection,
-			Set<Regex.DfaEdge> edgeCollection, int expectedStateCount,
-			int expectedEdgeCount, int expectedEpsilonEdgeCount) {
-		System.out.println(stateCollection);
-		System.out.println(edgeCollection);
-		System.out.println();
+	private static void checkNfa(
+			FiniteAutomaton<SymbolType, Character> automaton,
+			int expectedStateCount, int expectedEdgeCount,
+			int expectedEpsilonEdgeCount) {
+		Set<State<SymbolType>> stateCollection = automaton.states();
+		Set<Edge<SymbolType, Character>> edgeCollection = automaton.edges();
+
 		Utils.check(stateCollection.size() == expectedStateCount,
 				"Bad state count!");
 		Utils.check(edgeCollection.size() == expectedEdgeCount,
 				"Bad edge count!");
 
 		int epsilonEdgeCount = 0;
-		for (Regex.DfaEdge edge : edgeCollection) {
-			if (edge.character() == null) {
+		for (Edge<SymbolType, Character> edge : edgeCollection) {
+			if (edge.transitionOnSet() == null) {
 				epsilonEdgeCount++;
 			}
 		}
@@ -161,8 +161,8 @@ public class LexTests {
 				"Bad epsilon edge count!");
 
 		int acceptCount = 0;
-		for (Regex.DfaState state : stateCollection) {
-			if (state.symbolType() != null) {
+		for (State<SymbolType> state : stateCollection) {
+			if (state.value() != null) {
 				acceptCount++;
 			}
 		}
