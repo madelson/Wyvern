@@ -4,12 +4,12 @@
 package compiler.automata;
 
 import java.util.AbstractCollection;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
@@ -24,141 +24,71 @@ import compiler.Utils;
  * 
  */
 public class Characters {
-	private static final SetOperations<Character> simpleSetOperations = new SimpleSetOperations<Character>();
-
 	private static final SetOperations<Character> setOperations = new SetOperations<Character>() {
 
 		@Override
 		public Set<Collection<Character>> partitionedUnion(
 				Collection<Collection<Character>> sets) {
-			/*
-			 * Organize the given sets by their members. Ranges are collected
-			 * separately for efficiency
-			 */
+			// re-represent all sets as ranges
 			Set<Range> ranges = new HashSet<Range>();
-			SortedMap<Character, Set<Collection<Character>>> collectionsByCharacter = new TreeMap<Character, Set<Collection<Character>>>();
 			for (Collection<Character> set : sets) {
 				if (set instanceof Range) {
 					ranges.add((Range) set);
 				} else {
 					for (Character ch : set) {
-						Utils.put(collectionsByCharacter, HashSet.class, ch,
-								set);
+						ranges.add(range(ch, ch));
 					}
 				}
 			}
 
 			// partition the ranges
+			Set<Range> partitionedRanges = this.partitionedRangeUnion(ranges);
 
-			Set<Collection<Character>> result = new LinkedHashSet<Collection<Character>>();
-
-			// find any ranges before the first character
-			Character lowerBound = null;
-			Character upperBound = collectionsByCharacter.isEmpty() ? null
-					: collectionsByCharacter.firstKey();
-			Set<Range> activeRanges = this.getActiveRanges(ranges, lowerBound,
-					upperBound);
-			result.addAll(this.partitionedRangeUnion(activeRanges, lowerBound,
-					upperBound));
-
-			// scan through the collected characters and ranges, adding
-			// collections as necessary
-			Set<Collection<Character>> currentSets = new HashSet<Collection<Character>>();
-			Set<Character> currentChars = new HashSet<Character>();
-			Character prev = null;
-			for (Character ch : collectionsByCharacter.keySet()) {
-				// find ranges between the last character and the current one
-				if (prev != null) {
-					activeRanges = this.getActiveRanges(ranges, prev, ch);
-					result.addAll(this.partitionedRangeUnion(activeRanges,
-							prev, ch));
-				}
-
-				// if the current character is associated with all the same sets
-				// as the previous one, just add it
-				if (collectionsByCharacter.get(ch).equals(currentSets)) {
-					currentChars.add(ch);
-				}
-
-				// otherwise, create a set for all previous characters (if any)
-				// and save the current character and collection set
-				else {
-					if (!currentChars.isEmpty()) {
-						result.add(currentChars);
-						currentChars = new HashSet<Character>();
-						currentSets.clear();
-					}
-					currentChars.add(ch);
-					currentSets.addAll(collectionsByCharacter.get(ch));
-				}
-
-				prev = ch;
-			}
-
-			// finish creating any remaining sets
-			if (!currentChars.isEmpty()) {
-				result.add(currentChars);
-			}
-
-			/*
-			 * find ranges between the last character and the end of the
-			 * alphabet Note that this won't run for an empty
-			 * collectionsByCharacter set, which is what we want since in that
-			 * case the
-			 */
-			if (prev != null) {
-				activeRanges = this.getActiveRanges(ranges, prev, null);
-				result.addAll(this.partitionedRangeUnion(activeRanges, prev,
-						null));
-			}
-		}
-
-		private Set<Range> getActiveRanges(Set<Range> ranges,
-				Character lowerBound, Character upperBound) {
-			if (ranges.isEmpty()) {
-				return Collections.emptySet();
-			}
-
-			Set<Range> activeRanges = new HashSet<Range>();
-			for (Range range : ranges) {
-				if ((lowerBound == null || range.min() > lowerBound)
-						&& (upperBound == null || range.max() < upperBound)) {
-					activeRanges.add(range);
+			// eliminate single-char ranges
+			Set<Collection<Character>> result = new HashSet<Collection<Character>>();
+			Set<Character> singletonChars = new HashSet<Character>();
+			for (Range range : partitionedRanges) {
+				if (range.size() == 1) {
+					singletonChars.add(range.min());
+				} else {
+					result.add(range);
 				}
 			}
 
-			return activeRanges;
+			// merge singletons where possible
+			result.addAll(SimpleSetOperations.groupByContains(singletonChars,
+					new ArrayList<Collection<Character>>(sets)));
+
+			return result;
 		}
 
 		/**
 		 * As normal range partitioning, but operates only on a set of Ranges
 		 */
-		private Set<Collection<Character>> partitionedRangeUnion(
-				Collection<Range> ranges, Character lowerBound,
-				Character upperBound) {
+		private Set<Range> partitionedRangeUnion(Collection<Range> ranges) {
 			if (ranges.isEmpty()) {
 				return Collections.emptySet();
 			}
 
-			// associate each point with the number of ranges which start and
-			// end on it
+			/*
+			 * Associate each point with the number of ranges which start and
+			 * end on it.
+			 */
 			SortedMap<Character, Integer> minValues = new TreeMap<Character, Integer>(), maxValues = new TreeMap<Character, Integer>();
 			SortedSet<Character> allValues = new TreeSet<Character>();
 			for (Range range : ranges) {
-				Range trimmed = this.trim(range, lowerBound, upperBound);
-				minValues.put(trimmed.min(),
-						Utils.getOrDefault(minValues, trimmed.min(), 0) + 1);
-				maxValues.put(trimmed.max(),
-						Utils.getOrDefault(maxValues, trimmed.max(), 0) + 1);
-				allValues.add(trimmed.min());
-				allValues.add(trimmed.max());
+				minValues.put(range.min(),
+						Utils.getOrDefault(minValues, range.min(), 0) + 1);
+				maxValues.put(range.max(),
+						Utils.getOrDefault(maxValues, range.max(), 0) + 1);
+				Collections.addAll(allValues, range.min(), range.max());
 			}
 
 			/*
 			 * Scan through the points, creating a range when some range covers
 			 * that region.
 			 */
-			Set<Collection<Character>> result = new LinkedHashSet<Collection<Character>>();
+			Set<Range> result = new LinkedHashSet<Range>();
 			// the last char which is not yet represented by a set in result
 			char lastUnrepresentedChar = allValues.first();
 			// the number of ranges which are active at lastUnrepresentedChar
@@ -169,25 +99,19 @@ public class Characters {
 
 				/*
 				 * If ranges start at ch, we need a gap range through ch - 1 if
-				 * there are active ranges and we need a singleton set for ch if
-				 * ranges also end at ch.
+				 * there are active ranges and if at least one of those chars
+				 * remains unrepresented. Also, we need a singleton set for ch
+				 * if ranges also end at ch.
 				 */
 				if (startingRangeCount > 0) {
-					if (activeRangeCount > 0) {
-						// sanity check
-						Utils.check(lastUnrepresentedChar <= ch - 1);
-
-						result.add(lastUnrepresentedChar < ch - 1 ? range(
-								lastUnrepresentedChar, (char) (ch - 1))
-								: Collections.singleton((char) (ch - 1)));
+					if (activeRangeCount > 0 && lastUnrepresentedChar <= ch - 1) {
+						result.add(range(lastUnrepresentedChar, (char) (ch - 1)));
 					}
 
 					if (endingRangeCount > 0) {
-						Utils.check(activeRangeCount > 0); // sanity check
-
-						result.add(Collections.singleton(ch));
-						lastUnrepresentedChar = (char) (ch + 1); // ch already
-																	// represented
+						result.add(range(ch, ch));
+						// ch is already represented
+						lastUnrepresentedChar = (char) (ch + 1);
 					} else {
 						lastUnrepresentedChar = ch;
 					}
@@ -199,29 +123,15 @@ public class Characters {
 					Utils.check(endingRangeCount > 0); // sanity check
 					Utils.check(activeRangeCount > 0); // sanity check
 
-					result.add(lastUnrepresentedChar == ch ? Collections
-							.singleton(ch) : range(lastUnrepresentedChar, ch));
-					lastUnrepresentedChar = (char) (ch + 1); // ch already
-																// represented
+					result.add(range(lastUnrepresentedChar, ch));
+					// ch is already represented
+					lastUnrepresentedChar = (char) (ch + 1);
 				}
 
 				activeRangeCount += (startingRangeCount - endingRangeCount);
 			}
 
 			return result;
-		}
-
-		private Range trim(Range range, Character lowerBound,
-				Character upperBound) {
-			char min = lowerBound != null ? (char) Math.max(range.min(),
-					lowerBound) : range.min();
-			char max = upperBound != null ? (char) Math.min(range.max(),
-					upperBound) : range.max();
-
-			if (min == range.min() && max == range.max()) {
-				return range;
-			}
-			return range(min, max);
 		}
 	};
 
@@ -326,6 +236,11 @@ public class Characters {
 			return this.min * this.max;
 		}
 
+		@Override
+		public String toString() {
+			return String.format("[%s through %s]", this.min, this.max);
+		}
+		
 		public boolean overlaps(Range that) {
 			return !(this.max < that.min || that.max < this.min);
 		}

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -144,11 +145,9 @@ public class AutomataTests {
 				}
 			}
 		}
-		
+
 		/*
-		 * test that unions are the same (assumes contains all then contains any
-		 * condition) Note: not a full test, since that would be too expensive
-		 * with all characters
+		 * First half of the "unions are the same" test.
 		 */
 		for (Collection<Character> resultCollection : result) {
 			boolean found = false;
@@ -160,6 +159,29 @@ public class AutomataTests {
 			}
 			Utils.check(found, "Result contains extra characters!");
 		}
+
+		/*
+		 * The large range is all characters, so we know that the total count
+		 * should be max(char) + 1.
+		 */
+		if (tryLargeRange) {
+			int totalSize = 0;
+			for (Collection<Character> resultCollection : result) {
+				totalSize += resultCollection.size();
+			}
+			Utils.check(totalSize == Character.MAX_VALUE + 1, "Bad total result count!");
+		}
+		// simple union check
+		else {
+			Set<Character> originalChars = new HashSet<Character>(), resultChars = new HashSet<Character>();
+			for (Collection<Character> set : sets) {
+				originalChars.addAll(set);
+			}
+			for (Collection<Character> resultCollection : result) {
+				resultChars.addAll(resultCollection);
+			}
+			Utils.check(originalChars.equals(resultChars), "Unions are not equal!");
+		}
 	}
 
 	/**
@@ -169,7 +191,7 @@ public class AutomataTests {
 		rangeTest();
 
 		setOperationsTest(new SimpleSetOperations<Character>(), false);
-		setOperationsTest(Characters.setOperations(), false);
+		setOperationsTest(Characters.setOperations(), true);
 
 		// setFunctionTest();
 

@@ -3,9 +3,13 @@
  */
 package compiler.automata;
 
+import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import compiler.Utils;
@@ -23,11 +27,27 @@ public class SimpleSetOperations<T> implements SetOperations<T> {
 			allValues.addAll(set);
 		}
 
-		Set<Collection<T>> singletons = new HashSet<Collection<T>>();
-		for (T value : allValues) {
-			singletons.add(Collections.singleton(value));
+		return new HashSet<Collection<T>>(groupByContains(allValues,
+				new ArrayList<Collection<T>>(sets)));
+	}
+
+	/**
+	 * Groups the elements in values by the set of collections in sets that
+	 * contain them.
+	 */
+	public static <T> Collection<Set<T>> groupByContains(Set<T> values,
+			List<Collection<T>> sets) {
+		Map<BitSet, Set<T>> groups = new HashMap<BitSet, Set<T>>();
+		for (T value : values) {
+			BitSet containsSet = new BitSet(sets.size());
+			for (int i = 0; i < sets.size(); i++) {
+				if (sets.get(i).contains(value)) {
+					containsSet.set(i);
+				}
+			}
+			Utils.put(groups, HashSet.class, containsSet, value);
 		}
 
-		return Utils.immutableCopy(singletons);
+		return groups.values();
 	}
 }
