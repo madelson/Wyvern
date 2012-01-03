@@ -14,6 +14,7 @@ import compiler.Context;
 import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Utils;
+import compiler.automata.Characters;
 import compiler.automata.Edge;
 import compiler.automata.FiniteAutomaton;
 import compiler.automata.State;
@@ -125,14 +126,19 @@ public class LexTests {
 		auto = createSimpleNfa("[a-z]");
 		checkNfa(auto, 4, 3, 2);
 
+		// should create an nfa with an unreachable state
+		auto = createSimpleNfa("[]");
+		checkNfa(auto, 4, 2, 2);
+
 		auto = createSimpleNfa("\\n");
 		checkNfa(auto, 3, 2, 1);
 	}
 
-	private static FiniteAutomaton<SymbolType, Character> createSimpleNfa(String regex) {
+	private static FiniteAutomaton<SymbolType, Character> createSimpleNfa(
+			String regex) {
 		Symbol parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
 		FiniteAutomaton.Builder<SymbolType, Character> builder = FiniteAutomaton
-				.<SymbolType, Character> nfaBuilder();
+				.<SymbolType, Character> builder(Characters.setOperations());
 
 		Regex.buildNfaFor(builder,
 				new Context().getTerminalSymbolType("TOKEN"), parseTree);

@@ -3,6 +3,8 @@
  */
 package compiler.automata;
 
+import java.util.Collection;
+
 import compiler.Tuples;
 
 /**
@@ -10,9 +12,9 @@ import compiler.Tuples;
  * 
  */
 public class Edge<TState, TTransition> extends
-		Tuples.Trio<State<TState>, SetFunction<TTransition>, State<TState>> {
+		Tuples.Trio<State<TState>, Collection<TTransition>, State<TState>> {
 
-	public Edge(State<TState> from, SetFunction<TTransition> transitionOnSet,
+	public Edge(State<TState> from, Collection<TTransition> transitionOnSet,
 			State<TState> to) {
 		super(from, transitionOnSet, to);
 	}
@@ -21,7 +23,7 @@ public class Edge<TState, TTransition> extends
 		return this.item1();
 	}
 
-	public SetFunction<TTransition> transitionOnSet() {
+	public Collection<TTransition> transitionOnSet() {
 		return this.item2();
 	}
 

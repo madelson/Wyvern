@@ -8,57 +8,22 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import compiler.Utils;
 import compiler.automata.Characters;
+import compiler.automata.FiniteAutomaton;
 import compiler.automata.SetOperations;
 import compiler.automata.SimpleSetOperations;
+import compiler.automata.State;
 
 /**
  * @author Michael
  * 
  */
 public class AutomataTests {
-	// private static final SetFunction<Character> all = SetFunction.all(),
-	// empty = SetFunction.empty(), c = SetFunction.singleton('c'),
-	// C = SetFunction.singleton('C'), az = SetFunction.range('a', 'z',
-	// new Function<Character, Character>() {
-	//
-	// @Override
-	// public Character invoke(Character arg) {
-	// return (char) (arg + 1);
-	// }
-	//
-	// }),
-	//
-	// union = az.union(C);
-	//
-	// public static void setFunctionTest() {
-	// setFunctionContainsTestCase('c', new boolean[] { true, false, true,
-	// false, true, true });
-	// setFunctionContainsTestCase('C', new boolean[] { true, false, false,
-	// true, false, true });
-	// setFunctionContainsTestCase('d', new boolean[] { true, false, false,
-	// false, true, true });
-	// setFunctionContainsTestCase('D', new boolean[] { true, false, false,
-	// false, false, false });
-	// }
-	//
-	// private static void setFunctionContainsTestCase(Character ch,
-	// boolean[] expectedResults) {
-	// Utils.check(all.contains(ch) == expectedResults[0]);
-	// Utils.check(empty.contains(ch) == expectedResults[1]);
-	// Utils.check(c.contains(ch) == expectedResults[2]);
-	// Utils.check(C.contains(ch) == expectedResults[3]);
-	// Utils.check(az.contains(ch) == expectedResults[4]);
-	// Utils.check(union.contains(ch) == expectedResults[5]);
-	// }
-	private static final Characters.Range all = Characters.allCharacters(),
-			az = Characters.range('a', 'z'), be = Characters.range('b', 'e');
-	private static final Set<Character> empty = Collections.emptySet(),
-			c = Collections.singleton('c'), C = Collections.singleton('C');
 
 	private static void rangeTest() {
 		// test all
@@ -169,7 +134,8 @@ public class AutomataTests {
 			for (Collection<Character> resultCollection : result) {
 				totalSize += resultCollection.size();
 			}
-			Utils.check(totalSize == Character.MAX_VALUE + 1, "Bad total result count!");
+			Utils.check(totalSize == Character.MAX_VALUE + 1,
+					"Bad total result count!");
 		}
 		// simple union check
 		else {
@@ -180,8 +146,62 @@ public class AutomataTests {
 			for (Collection<Character> resultCollection : result) {
 				resultChars.addAll(resultCollection);
 			}
-			Utils.check(originalChars.equals(resultChars), "Unions are not equal!");
+			Utils.check(originalChars.equals(resultChars),
+					"Unions are not equal!");
 		}
+	}
+
+	public static void dfaConversionTest() {
+		LinkedHashSet<String> values = Utils.set("aa", "bb", "cc", "dd");
+
+		// dfa.toDfa() == reachable states in dfa
+		FiniteAutomaton.Builder<String, Character> builder = FiniteAutomaton
+				.builder(Characters.setOperations());
+		State<String> s1 = builder.newState();
+
+		// minimal test
+		Utils.check(builder.toFiniteAutomaton().equals(
+				builder.toFiniteAutomaton().toDfa(values)));
+
+		// simple dfa
+		State<String> s2 = builder.newState();
+		builder.createEdge(s1, Characters.range('a', 'c'), s2);
+		builder.createEdge(s2, Collections.singleton('A'), s1);
+		Utils.check(builder.toFiniteAutomaton().equals(
+				builder.toFiniteAutomaton().toDfa(values)));
+
+		// an unreachable state should be removed
+		State<String> s3 = builder.newState("dd");
+		Utils.check(!builder.toFiniteAutomaton().equals(
+				builder.toFiniteAutomaton().toDfa(values)));
+		Utils.check(builder.toFiniteAutomaton().edges()
+				.equals(builder.toFiniteAutomaton().toDfa(values).edges()));
+		Utils.check(builder.toFiniteAutomaton().startState()
+				.equals(builder.toFiniteAutomaton().toDfa(values).startState()));
+		Set<State<String>> states = new HashSet<State<String>>(builder.toFiniteAutomaton().states());
+		states.remove(s3);
+		Utils.check(states.equals(builder.toFiniteAutomaton().toDfa(values).states()));
+		
+		// actual nfa -> dfa conversion
+		builder.createEdge(s1, Characters.range('b', 'd'), s3);
+		State<String> s4 = builder.newState("aa");
+		builder.createEdge(s3, s4);
+		FiniteAutomaton<String, Character> auto = builder.toFiniteAutomaton().toDfa(values);
+		Utils.check(auto.states().size() == 4);
+		Utils.check(auto.edges().size() == 5);
+		Utils.check(auto.startState().value() == null);
+		int nullCount = 0, aaCount = 0;
+		for (State<String> state : auto.states()) {
+			if (state.value() == null) {
+				nullCount++;
+			} else if (state.value().equals("aa")) {
+				aaCount++;
+			} else {
+				Utils.err("Bad value!");
+			}
+		}
+		Utils.check(nullCount == 2);
+		Utils.check(aaCount == 2);
 	}
 
 	/**
@@ -193,7 +213,7 @@ public class AutomataTests {
 		setOperationsTest(new SimpleSetOperations<Character>(), false);
 		setOperationsTest(Characters.setOperations(), true);
 
-		// setFunctionTest();
+		dfaConversionTest();
 
 		System.out.println("All automata tests passed!");
 	}

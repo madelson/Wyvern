@@ -150,6 +150,13 @@ public class Characters {
 		return new Range(min, max);
 	}
 
+	/**
+	 * Collection class which efficiently stores an arbitrarily large range of
+	 * characters. Ranges represented by this class are inclusive. Although
+	 * ranges are technically sets as well as lists, they only implement
+	 * Collection due to the difficulty of efficiently implementing either
+	 * Set.equals or List.equals.
+	 */
 	public static class Range extends AbstractCollection<Character> {
 		private final char min, max;
 
@@ -240,7 +247,7 @@ public class Characters {
 		public String toString() {
 			return String.format("[%s through %s]", this.min, this.max);
 		}
-		
+
 		public boolean overlaps(Range that) {
 			return !(this.max < that.min || that.max < this.min);
 		}

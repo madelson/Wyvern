@@ -4,6 +4,7 @@
 package compiler.lex;
 
 import java.io.StringReader;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,8 +16,8 @@ import compiler.Context;
 import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Utils;
+import compiler.automata.Characters;
 import compiler.automata.FiniteAutomaton;
-import compiler.automata.SetFunction;
 import compiler.automata.State;
 import compiler.canonicalize.Canonicalize;
 import compiler.parse.Associativity;
@@ -196,7 +197,7 @@ public class Regex {
 				if (type.equals(CHAR)) {
 					// start - ch -> head
 					State<T> headState = builder.newState();
-					builder.createEdge(startState, SetFunction
+					builder.createEdge(startState, Collections
 							.singleton(getChar(regexSymbol.children().get(0))),
 							headState);
 					return headState;
@@ -205,7 +206,7 @@ public class Regex {
 					// start - any -> head
 					State<T> headState = builder.newState();
 					builder.createEdge(startState,
-							SetFunction.<Character> all(), headState);
+							Characters.allCharacters(), headState);
 					return headState;
 				}
 				throw Utils.err("Should never get here!");
@@ -274,18 +275,18 @@ public class Regex {
 					for (Symbol setChild : regexSymbol.children().get(1)
 							.children()) {
 						Symbol setSymbol = setChild.children().get(0);
-						SetFunction<Character> charSet;
+						Collection<Character> charSet;
 						if (setSymbol.type().equals(CHAR)) {
 							// tail - ch -> head
-							charSet = SetFunction.singleton(getChar(setSymbol));
+							charSet = Collections.singleton(getChar(setSymbol));
 						} else if (setSymbol.type().equals(ESCAPED)) {
 							// tail - \ch -> head
-							charSet = SetFunction.singleton(getChar(setSymbol));
+							charSet = Collections.singleton(getChar(setSymbol));
 						} else if (setSymbol.type().equals(RANGE)) {
 							// start - [chars] -> end
 							char min = getChar(setSymbol.children().get(0)), max = getChar(setSymbol
 									.children().get(2));
-							charSet = SetFunction.range(min, max);
+							charSet = Characters.range(min, max);
 						} else {
 							throw Utils.err("Should never get here!");
 						}

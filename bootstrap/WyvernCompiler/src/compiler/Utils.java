@@ -15,14 +15,14 @@ public class Utils {
 	public static boolean isNullOrEmpty(String s) {
 		return s == null || s.length() == 0;
 	}
-	
+
 	public static <T> T coalesce(T obj, T... others) {
 		T retVal = obj;
-		
+
 		for (int i = 0; retVal == null && i < others.length; i++) {
 			retVal = others[i];
 		}
-		
+
 		return retVal;
 	}
 
@@ -118,6 +118,23 @@ public class Utils {
 	}
 
 	/**
+	 * Do the two collections intersect?
+	 */
+	public static boolean intersects(Collection<?> collection1,
+			Collection<?> collection2) {
+		if (collection2.size() < collection1.size()) {
+			return intersects(collection2, collection1);
+		}
+		for (Object obj : collection1) {
+			if (collection2.contains(obj)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * A convenience method for consistent error handling
 	 */
 	public static RuntimeException err(String msg) {
@@ -188,6 +205,10 @@ public class Utils {
 
 		return innerMap.put(key2, value);
 	}
+	
+	public static <K, V> V getOrDefault(Map<K, V> map, K key, V defaultValue) {
+		return map.containsKey(key) ? map.get(key) : defaultValue;
+	}
 
 	public static <T> T deepImmutableCopy(T objects) {
 		return deepImmutableCopy(objects, true);
@@ -231,10 +252,10 @@ public class Utils {
 
 		for (T item : collection)
 			copy.add(deepImmutableCopy(item, false));
-				
+
 		return immutableCopy;
 	}
-	
+
 	public static boolean symbolsAreEquivalent(Symbol a, Symbol b) {
 		if (!a.type().equals(b.type()))
 			return false;

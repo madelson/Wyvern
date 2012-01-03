@@ -5,3 +5,14 @@
 * createVirtualSymbol in SymbolType (affects printing as well)
 * support more weird escaped characters in regex (see java regex spec)
 * special (multichar) characters in ranges
+* single precedence api for parsers, dfa to nfa, and lexer generators
+* fix automaton equals() and hashcode() to not rely on state names
+
+Language Ideas:
+* extractor-based function pattern matching from scala, so I can do:
+case Sqrt(x) where x is an int => ...
+* property-based pattern matching: case User(Name n, IsAdmin: false) where n.startsWith("mike") =>
+* enumerable-based pattern matching: case [1, 2, 3] =>
+* regexes are just patterns
+* methods for finding all matches to a pattern in an iterable (note: sequence patterns vs item patterns)
+* ranges [1 to 5) or [1 to 5] (.. or to)?
