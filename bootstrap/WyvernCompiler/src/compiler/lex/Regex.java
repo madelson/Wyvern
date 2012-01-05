@@ -205,8 +205,8 @@ public class Regex {
 				if (type.equals(WILDCARD)) {
 					// start - any -> head
 					State<T> headState = builder.newState();
-					builder.createEdge(startState,
-							Characters.allCharacters(), headState);
+					builder.createEdge(startState, Characters.allCharacters(),
+							headState);
 					return headState;
 				}
 				throw Utils.err("Should never get here!");

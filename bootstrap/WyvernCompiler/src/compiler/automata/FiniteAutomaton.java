@@ -253,5 +253,14 @@ public class FiniteAutomaton<TState, TTransition>
 				State<TState> toState) {
 			return this.createEdge(fromState, null, toState);
 		}
+
+		public Set<State<TState>> states() {
+			return Collections.unmodifiableSet(this.states);
+		}
+
+		public Set<Edge<TState, TTransition>> edges() {
+			return Collections.unmodifiableSet(this.edges);
+		}
 	}
+
 }
