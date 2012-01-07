@@ -14,9 +14,12 @@ import java.util.Set;
 
 import compiler.Utils;
 import compiler.automata.Characters;
+import compiler.automata.DfaSimulator;
 import compiler.automata.FiniteAutomaton;
 import compiler.automata.SetOperations;
 import compiler.automata.SimpleSetOperations;
+import compiler.automata.Simulator;
+import compiler.automata.SimulatorState;
 import compiler.automata.State;
 
 /**
@@ -178,15 +181,18 @@ public class AutomataTests {
 				.equals(builder.toFiniteAutomaton().toDfa(values).edges()));
 		Utils.check(builder.toFiniteAutomaton().startState()
 				.equals(builder.toFiniteAutomaton().toDfa(values).startState()));
-		Set<State<String>> states = new HashSet<State<String>>(builder.toFiniteAutomaton().states());
+		Set<State<String>> states = new HashSet<State<String>>(builder
+				.toFiniteAutomaton().states());
 		states.remove(s3);
-		Utils.check(states.equals(builder.toFiniteAutomaton().toDfa(values).states()));
-		
+		Utils.check(states.equals(builder.toFiniteAutomaton().toDfa(values)
+				.states()));
+
 		// actual nfa -> dfa conversion
 		builder.createEdge(s1, Characters.range('b', 'd'), s3);
 		State<String> s4 = builder.newState("aa");
 		builder.createEdge(s3, s4);
-		FiniteAutomaton<String, Character> auto = builder.toFiniteAutomaton().toDfa(values);
+		FiniteAutomaton<String, Character> auto = builder.toFiniteAutomaton()
+				.toDfa(values);
 		Utils.check(auto.states().size() == 4);
 		Utils.check(auto.edges().size() == 5);
 		Utils.check(auto.startState().value() == null);
@@ -204,6 +210,53 @@ public class AutomataTests {
 		Utils.check(aaCount == 2);
 	}
 
+	public static void simulatorTest() {
+		FiniteAutomaton.Builder<Integer, Character> builder = FiniteAutomaton
+				.builder(Characters.setOperations());
+		State<Integer> s1 = builder.newState(), s2 = builder.newState(), s3 = builder
+				.newState(3), s4 = builder.newState(), s5 = builder.newState(5);
+		Characters.Range digits = Characters.range('0', '9');
+		Set<Character> dot = Collections.singleton('.');
+		builder.createEdge(s1, digits, s2);
+		builder.createEdge(s2, digits, s2);
+		builder.createEdge(s2, dot, s3);
+		builder.createEdge(s3, digits, s3);
+		builder.createEdge(s1, dot, s4);
+		builder.createEdge(s4, digits, s5);
+		builder.createEdge(s5, digits, s5);
+
+		FiniteAutomaton<Integer, Character> auto = builder.toFiniteAutomaton();
+		Simulator<Integer, Character> sim = new DfaSimulator<Integer, Character>(
+				auto);
+
+		checkSimulator(sim, "", new Integer[] { null },
+				new SimulatorState[] { SimulatorState.Reject });
+		checkSimulator(sim, "2.3", new Integer[] { null, null, 3, 3 },
+				new SimulatorState[] { SimulatorState.Reject,
+						SimulatorState.Reject, SimulatorState.Accept,
+						SimulatorState.Accept });
+		checkSimulator(sim, ".35a", new Integer[] { null, null, 5, 5, -1 },
+				new SimulatorState[] { SimulatorState.Reject,
+						SimulatorState.Reject, SimulatorState.Accept,
+						SimulatorState.Accept, SimulatorState.Error });
+
+	}
+
+	private static void checkSimulator(Simulator<Integer, Character> sim,
+			String inputs, Integer[] outputs, SimulatorState[] states) {
+		sim.reset();
+
+		for (int i = 0; i < outputs.length; i++) {
+			Utils.check(sim.simulatorState().equals(states[i]));
+			if (sim.simulatorState() != SimulatorState.Error) {
+				Utils.check(Utils.equals(sim.currentValue(), outputs[i]));
+			}
+			if (i < inputs.length()) {
+				sim.consume(inputs.charAt(i));
+			}
+		}
+	}
+
 	/**
 	 * @param args
 	 */
@@ -214,6 +267,8 @@ public class AutomataTests {
 		setOperationsTest(Characters.setOperations(), true);
 
 		dfaConversionTest();
+
+		simulatorTest();
 
 		System.out.println("All automata tests passed!");
 	}
