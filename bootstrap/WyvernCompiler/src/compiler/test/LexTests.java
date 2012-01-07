@@ -3,8 +3,12 @@
  */
 package compiler.test;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,7 +25,9 @@ import compiler.automata.State;
 import compiler.lex.CharLexerGenerator;
 import compiler.lex.Lexer;
 import compiler.lex.LexerAction;
+import compiler.lex.LineNumberAndPositionBufferedReader;
 import compiler.lex.Regex;
+import compiler.lex.RegexLexerGenerator;
 
 /**
  * @author Michael
@@ -72,7 +78,6 @@ public class LexTests {
 		for (i = 0; i < types.length; i++)
 			Utils.check(tokens.get(i).type().equals(types[i]), i + ": "
 					+ tokens.get(i).type() + " != " + types[i]);
-
 	}
 
 	public static void basicRegexTest() {
@@ -175,12 +180,124 @@ public class LexTests {
 		Utils.check(acceptCount == 1, "Bad accept count!");
 	}
 
-	public static void main(String[] args) {
+	public static void regexLexerGeneratorTest() {
+		Context c = new Context();
+		SymbolType iff = c.getTerminalSymbolType("IF"), id = c
+				.getTerminalSymbolType("ID"), num = c
+				.getTerminalSymbolType("INT"), real = c
+				.getTerminalSymbolType("REAL"), commentText = c
+				.getTerminalSymbolType("COMMENT"), ur = c.unrecognizedType(), eof = c
+				.eofType();
+		String commentState = "COMMENT_STATE";
+
+		LinkedHashSet<LexerAction> actions = new LinkedHashSet<LexerAction>();
+
+		// basic symbols
+		actions.add(LexerAction.lexToken("if", iff));
+		actions.add(LexerAction.lexToken("[a-z][a-z0-9]*", id));
+		actions.add(LexerAction.lexToken("[0-9]+", num));
+		actions.add(LexerAction.lexToken("([0-9]+\\.[0-9]*)|([0-9]*\\.[0-9]+)",
+				real));
+
+		// skip whitespace
+		actions.add(LexerAction.skip(
+				Utils.set(Lexer.DEFAULT_STATE, commentState), "[ \r\n\t]"));
+
+		// nested comment support
+		actions.add(LexerAction.enter(
+				Utils.set(Lexer.DEFAULT_STATE, commentState), "/\\*", null,
+				commentState));
+		actions.add(LexerAction.leave(Collections.singleton(commentState),
+				"\\*/", null));
+		// pick up comment text (possibly in chunks) without mistakenly looking
+		// past "*/"
+		actions.add(LexerAction.lexToken(Collections.singleton(commentState),
+				"([a-zA-Z0-9\n ]+)|.", commentText));
+
+		Lexer lexer = new RegexLexerGenerator().generate(c, actions).lexer();
+
+		checkLexer(lexer, "", new SymbolType[] { eof });
+		checkLexer(lexer, "iif123 iff 123",
+				new SymbolType[] { id, id, num, eof });
+		checkLexer(lexer, "ifia0 1 a1.5", new SymbolType[] { iff, id, num, id,
+				real, eof });
+		checkLexer(lexer, "if/*aa<bb*/aa<bb", new SymbolType[] { iff,
+				commentText, commentText, commentText, id, ur, id, eof });
+	}
+
+	private static void checkLexer(Lexer lexer, String input,
+			SymbolType[] outputTypes) {
+		List<Symbol> output = Utils.toList(lexer.lex(new StringReader(input)));
+
+		System.out.println(output);
+
+		// check types
+		Utils.check(output.size() == outputTypes.length, "Bad output length!");
+		for (int i = 0; i < output.size(); i++) {
+			Utils.check(output.get(i).type().equals(outputTypes[i]),
+					"Bad output type at " + i);
+		}
+
+		// check texts
+		for (Symbol s : output) {
+			Utils.check(input.contains(s.text()));
+		}
+	}
+
+	public static void readerTest() throws IOException {
+		LineNumberAndPositionBufferedReader r = new LineNumberAndPositionBufferedReader(
+				new StringReader("a\n\nbcd"));
+		List<Object> result = new ArrayList<Object>();
+		result.add(r.position()); // 0
+		result.add(r.lineNumber()); // 0
+		result.add((char) r.uncheckedRead()); // a
+		r.mark();
+		result.add((char) r.uncheckedRead()); // \n
+		result.add(r.lineNumber()); // 1
+		result.add(r.position()); // 2
+		result.add((char) r.uncheckedRead()); // \n
+		result.add((char) r.uncheckedRead()); // b
+		r.reset();
+		result.add(r.lineNumber()); // 1
+		result.add(r.position()); // 1
+		char[] buf = new char[4];
+		r.read(buf);
+		result.add(Arrays.hashCode(buf));
+		result.add(r.offsetFromMark()); // 4
+		r.mark();
+		result.add(r.offsetFromMark()); // 0
+		r.mark();
+		r.mark();
+		r.reset();
+		result.add((char) r.uncheckedRead()); // d
+		result.add(r.uncheckedRead()); // -1
+		r.reset();
+		result.add(r.lineNumber()); // 3
+		result.add(r.position()); // 2
+		result.add((char)r.uncheckedRead()); // d
+		result.add(r.position()); // 3
+		result.add(r.uncheckedRead()); // -1
+		result.add(r.position()); // 3
+		result.add(r.lineNumber()); // 3
+		result.add(r.offsetFromMark()); // 1
+		result.add(r.uncheckedRead()); // -1
+
+		Object[] expected = new Object[] { 0, 0, 'a', '\n', 1, 2, '\n', 'b', 1,
+				1, Arrays.hashCode(new char[] { '\n', '\n', 'b', 'c' }), 4, 0,
+				'd', -1, 3, 2, 'd', 3, -1, 3, 3, 1, -1 };
+		Utils.check(Arrays.asList(expected).equals(result));
+	}
+
+	public static void main(String[] args) throws IOException {
+		readerTest();
+
 		charLexerGeneratorTest();
 
 		basicRegexTest();
 
 		regexNfaTest();
+
+		// regexLexerGeneratorTest();
 
 		System.out.println("All lex tests passed!");
 	}
