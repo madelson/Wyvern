@@ -124,19 +124,25 @@ public class Context {
 
 					@Override
 					public int endPosition() {
+						// for empty or 1-length text, the end position is the
+						// same as the start position
+						if (text.length() <= 1) {
+							return position;
+						}
+						
 						String[] lines = Utils.split(text, Utils.NL);
 
 						// if it's a one-liner, just add the text length
 						if (lines.length == 1)
-							return position + text.length();
+							return position + text.length() - 1;
 
 						// else if the last line is empty return the length
 						// of the second-to-last line
 						if (lines[lines.length - 1].isEmpty())
-							return lines[lines.length - 2].length();
+							return lines[lines.length - 2].length() - 1;
 
 						// else return the length of the last line
-						return lines[lines.length - 1].length();
+						return lines[lines.length - 1].length() - 1;
 					}
 
 					@Override
@@ -258,7 +264,7 @@ public class Context {
 							int lineDiff = child.line() - lastChild.endLine(), posDiff = child
 									.position()
 									- (lineDiff > 0 ? 0 : lastChild
-											.endPosition());
+											.endPosition() + 1);
 							for (int i = 0; i < lineDiff; i++)
 								sb.append(Utils.NL);
 							for (int i = 0; i < posDiff; i++)
