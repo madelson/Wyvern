@@ -7,6 +7,8 @@
 * special (multichar) characters in ranges
 * single precedence api for parsers, dfa to nfa, and lexer generators
 * fix automaton equals() and hashcode() to not rely on state names
+* absoluteposition for symbols
+* pushback for fancy reader
 
 Language Ideas:
 * extractor-based function pattern matching from scala, so I can do:
@@ -16,3 +18,4 @@ case Sqrt(x) where x is an int => ...
 * regexes are just patterns
 * methods for finding all matches to a pattern in an iterable (note: sequence patterns vs item patterns)
 * ranges [1 to 5) or [1 to 5] (.. or to)?
+* iterator decorator that allows watchers (e. g. for tracking line number, etc.). Decorator for mark/pushback, watcher for line number tracking (save/restore state!)

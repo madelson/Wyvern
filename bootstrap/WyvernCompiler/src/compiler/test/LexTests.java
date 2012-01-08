@@ -67,6 +67,7 @@ public class LexTests {
 				Utils.check(s.type() == any);
 			i++;
 		}
+		lexerLineNumberAndPositionTest(lexer, text, c.eofType());
 
 		text = "abX(abab)b(())bbbXa(X)";
 		reader = new StringReader(text);
@@ -78,6 +79,37 @@ public class LexTests {
 		for (i = 0; i < types.length; i++)
 			Utils.check(tokens.get(i).type().equals(types[i]), i + ": "
 					+ tokens.get(i).type() + " != " + types[i]);
+		lexerLineNumberAndPositionTest(lexer, text, c.eofType());
+	}
+
+	private static void lexerLineNumberAndPositionTest(Lexer lexer, String text, SymbolType eofType) {
+		String[] lines = Utils.split(text, "\n");
+		// add the \n's back
+		for (int i = 0; i < lines.length; i++) {
+			if (i < lines.length - 1 || text.charAt(text.length() - 1) == '\n') {
+				lines[i] += '\n';
+			}
+		}
+		
+		List<Symbol> tokens = Utils.toList(lexer.lex(new StringReader(text)));
+		for (Symbol token : tokens) {
+			if (!token.type().equals(eofType)) {
+				int absoluteStartPosition = getAbsolutePosition(lines, token.line(), token.position()),
+						absoluteEndPosition = getAbsolutePosition(lines, token.endLine(), token.endPosition());
+				String tokenText = text.substring(absoluteStartPosition, absoluteEndPosition + 1);
+				Utils.check(token.text().equals(tokenText));
+			}
+		}
+	}
+	
+	private static int getAbsolutePosition(String[] lines, int line, int position) {
+		int absolutePosition = 0;
+		for (int i = 1; i < line; i++) {
+			absolutePosition += lines[i - 1].length();
+		}
+		absolutePosition += position - 1;
+		
+		return absolutePosition;
 	}
 
 	public static void basicRegexTest() {
@@ -274,7 +306,7 @@ public class LexTests {
 		r.reset();
 		result.add(r.lineNumber()); // 3
 		result.add(r.position()); // 2
-		result.add((char)r.uncheckedRead()); // d
+		result.add((char) r.uncheckedRead()); // d
 		result.add(r.position()); // 3
 		result.add(r.uncheckedRead()); // -1
 		result.add(r.position()); // 3
@@ -288,8 +320,12 @@ public class LexTests {
 		Utils.check(Arrays.asList(expected).equals(result));
 	}
 
-	public static void main(String[] args) throws IOException {
-		readerTest();
+	public static void main(String[] args) {
+		try {
+			readerTest();
+		} catch (IOException ex) {
+			Utils.err(ex);
+		}
 
 		charLexerGeneratorTest();
 

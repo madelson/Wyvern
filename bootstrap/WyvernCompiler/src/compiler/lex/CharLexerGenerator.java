@@ -21,7 +21,8 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 			LinkedHashSet<LexerAction> allActions,
 			final Map<String, LinkedHashMap<String, LexerAction>> groupedActions) {
 		for (LexerAction la : allActions)
-			Utils.check(la.pattern().length() <= 1, String.format("Pattern \"%s\" is too long!", la.pattern()));
+			Utils.check(la.pattern().length() <= 1,
+					String.format("Pattern \"%s\" is too long!", la.pattern()));
 
 		final Lexer lexer = new Lexer() {
 
@@ -31,9 +32,11 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 			}
 
 			@Override
-			public Iterator<Symbol> lex(final Reader reader) {
+			public Iterator<Symbol> lex(Reader reader) {
+				final LineNumberAndPositionBufferedReader bufferedReader = new LineNumberAndPositionBufferedReader(
+						reader);
+
 				return new Iterator<Symbol>() {
-					private int line = 1, position = 1;
 					private boolean sentEOF = false;
 					private Deque<String> stateStack = new ArrayDeque<String>(
 							LexerAction.DEFAULT_SET);
@@ -53,12 +56,7 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 						// loop until we find a token to return or send eof
 						do {
 							// read the next character
-							int c;
-							try {
-								c = reader.read();
-							} catch (IOException ex) {
-								throw Utils.err(ex);
-							}
+							int c = bufferedReader.uncheckedRead();
 
 							// if there are no more chars to send, send eof
 							if (c == -1) {
@@ -66,7 +64,8 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 									throw new NoSuchElementException();
 								this.sentEOF = true;
 								return context.eofType().createSymbol("",
-										this.line, this.position);
+										bufferedReader.lineNumber(),
+										bufferedReader.position());
 							}
 
 							String text = String.valueOf((char) c);
@@ -97,15 +96,9 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 
 							// if we have a token type, create a token
 							if (tokenType != null)
-								token = tokenType.createSymbol(text, this.line,
-										this.position);
-
-							// keep track of position and line number
-							this.position++;
-							if (c == '\n') {
-								this.line++;
-								this.position = 1;
-							}
+								token = tokenType.createSymbol(text,
+										bufferedReader.lineNumber(),
+										bufferedReader.position());
 						} while (token == null);
 
 						return token;

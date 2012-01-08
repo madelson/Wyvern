@@ -99,6 +99,9 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 		return ch;
 	}
 
+	/**
+	 * As read() but throws an unchecked exception on failure
+	 */
 	public int uncheckedRead() {
 		try {
 			return this.read();
