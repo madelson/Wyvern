@@ -31,6 +31,14 @@ public class BasicTests {
 		Symbol symbol = c.getNonTerminalSymbolType("symbol").createSymbol(token);
 		Utils.check(symbol.children().get(0).equals(token));
 		
+		token = tt.createSymbol("\nab\n", 3, 5);
+		Utils.check(token.endLine() == 4);
+		Utils.check(token.endPosition() == 3);
+		
+		token = tt.createSymbol("a\n\nb", 1, 1);
+		Utils.check(token.endLine() == 3);
+		Utils.check(token.endPosition() == 1);
+		
 		// Utils
 		Map<String, Map<String, Integer>> map = new HashMap<String, Map<String, Integer>>();
 		Utils.check(Utils.put(map, HashMap.class, "a", "b", 3) == null);
@@ -46,6 +54,9 @@ public class BasicTests {
 		Utils.check(immutable.size() == 1);
 		Utils.check(immutable.get("a").size() == 1);
 		
+		String[] split = Utils.split("abcdaa", "a");
+		Utils.check(Arrays.equals(split, new String[] { "", "bcd", "", "" }));
+				
 		System.out.println("All basic tests passed!");
 	}
 

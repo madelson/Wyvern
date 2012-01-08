@@ -31,15 +31,18 @@ public class Utils {
 	 * is always 1 + the number of unique instances of the separator string.
 	 */
 	public static String[] split(String text, String seperator) {
+		Utils.check(!seperator.isEmpty(),
+				"Splitting on the empty string is undefined!");
+
 		List<String> parts = new ArrayList<String>();
 
-		int lastPos = 0, pos;
-		while ((pos = text.indexOf(seperator)) >= 0) {
-			parts.add(text.substring(lastPos, pos));
-			lastPos = pos + seperator.length();
+		int startSearchPos = 0, pos;
+		while ((pos = text.indexOf(seperator, startSearchPos)) >= 0) {
+			parts.add(text.substring(startSearchPos, pos));
+			startSearchPos = pos + seperator.length();
 		}
-		parts.add(text.substring(lastPos, text.length()));
-
+		parts.add(text.substring(startSearchPos, text.length()));
+		
 		return parts.toArray(new String[parts.size()]);
 	}
 
@@ -205,7 +208,7 @@ public class Utils {
 
 		return innerMap.put(key2, value);
 	}
-	
+
 	public static <K, V> V getOrDefault(Map<K, V> map, K key, V defaultValue) {
 		return map.containsKey(key) ? map.get(key) : defaultValue;
 	}

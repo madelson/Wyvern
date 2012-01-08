@@ -114,7 +114,14 @@ public class Context {
 
 					@Override
 					public int endLine() {
-						return line + Utils.split(text, Utils.NL).length - 1;
+						/*
+						 * (1) Start with line. (2) Add the line terminator
+						 * count. (3) Subtract 1 if text ends with a line
+						 * terminator (since the line terminator is considered
+						 * to be the last character on its line).
+						 */
+						return line + (Utils.split(text, "\n").length - 1)
+								- (text.endsWith("\n") ? 1 : 0);
 					}
 
 					@Override
@@ -129,20 +136,27 @@ public class Context {
 						if (text.length() <= 1) {
 							return position;
 						}
-						
-						String[] lines = Utils.split(text, Utils.NL);
+
+						int lastLineTerminator = text.lastIndexOf("\n");
 
 						// if it's a one-liner, just add the text length
-						if (lines.length == 1)
+						if (lastLineTerminator < 0) {
 							return position + text.length() - 1;
+						}
 
-						// else if the last line is empty return the length
-						// of the second-to-last line
-						if (lines[lines.length - 1].isEmpty())
-							return lines[lines.length - 2].length() - 1;
+						// if text ends with a line terminator, use the previous
+						// line terminator
+						if (lastLineTerminator == text.length() - 1) {
+							lastLineTerminator = text.lastIndexOf("\n",
+									lastLineTerminator - 1);
+							// if there's no other last line terminator, it's a
+							// one-liner!
+							if (lastLineTerminator < 0) {
+								return position + text.length() - 1;
+							}
+						}
 
-						// else return the length of the last line
-						return lines[lines.length - 1].length() - 1;
+						return text.length() - lastLineTerminator - 1;
 					}
 
 					@Override
@@ -290,8 +304,7 @@ public class Context {
 						}
 						if (sb.charAt(sb.length() - 1) == ' ') {
 							sb.setCharAt(sb.length() - 1, ')');
-						}
-						else {
+						} else {
 							sb.append(')');
 						}
 
