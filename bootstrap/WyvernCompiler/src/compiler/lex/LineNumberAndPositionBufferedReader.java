@@ -19,7 +19,7 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 	private final StringBuilder buffer = new StringBuilder();
 	private int lineNumber = 0, position = 0, markLineNumber, markPosition,
 			nextReadbufferIndex = 0;
-	boolean sawLineFeed = true, markSet = false, markSawLineFeed;
+	private boolean sawLineFeed = true, markSet = false, markSawLineFeed;
 
 	public LineNumberAndPositionBufferedReader(Reader reader) {
 		this.reader = reader;

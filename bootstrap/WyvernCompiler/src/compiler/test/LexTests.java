@@ -82,33 +82,38 @@ public class LexTests {
 		lexerLineNumberAndPositionTest(lexer, text, c.eofType());
 	}
 
-	private static void lexerLineNumberAndPositionTest(Lexer lexer, String text, SymbolType eofType) {
+	private static void lexerLineNumberAndPositionTest(Lexer lexer,
+			String text, SymbolType eofType) {
 		String[] lines = Utils.split(text, "\n");
 		// add the \n's back
 		for (int i = 0; i < lines.length; i++) {
-			if (i < lines.length - 1 || text.charAt(text.length() - 1) == '\n') {
+			if (i < lines.length - 1
+					|| (!text.isEmpty() && text.charAt(text.length() - 1) == '\n')) {
 				lines[i] += '\n';
 			}
 		}
-		
+
 		List<Symbol> tokens = Utils.toList(lexer.lex(new StringReader(text)));
 		for (Symbol token : tokens) {
 			if (!token.type().equals(eofType)) {
-				int absoluteStartPosition = getAbsolutePosition(lines, token.line(), token.position()),
-						absoluteEndPosition = getAbsolutePosition(lines, token.endLine(), token.endPosition());
-				String tokenText = text.substring(absoluteStartPosition, absoluteEndPosition + 1);
+				int absoluteStartPosition = getAbsolutePosition(lines,
+						token.line(), token.position()), absoluteEndPosition = getAbsolutePosition(
+						lines, token.endLine(), token.endPosition());
+				String tokenText = text.substring(absoluteStartPosition,
+						absoluteEndPosition + 1);
 				Utils.check(token.text().equals(tokenText));
 			}
 		}
 	}
-	
-	private static int getAbsolutePosition(String[] lines, int line, int position) {
+
+	private static int getAbsolutePosition(String[] lines, int line,
+			int position) {
 		int absolutePosition = 0;
 		for (int i = 1; i < line; i++) {
 			absolutePosition += lines[i - 1].length();
 		}
 		absolutePosition += position - 1;
-		
+
 		return absolutePosition;
 	}
 
@@ -232,8 +237,7 @@ public class LexTests {
 				real));
 
 		// skip whitespace
-		actions.add(LexerAction.skip(
-				Utils.set(Lexer.DEFAULT_STATE, commentState), "[ \r\n\t]"));
+		actions.add(LexerAction.skip(LexerAction.DEFAULT_SET, "[ \r\n\t]"));
 
 		// nested comment support
 		actions.add(LexerAction.enter(
@@ -251,17 +255,23 @@ public class LexTests {
 		checkLexer(lexer, "", new SymbolType[] { eof });
 		checkLexer(lexer, "iif123 iff 123",
 				new SymbolType[] { id, id, num, eof });
-		checkLexer(lexer, "ifia0 1 a1.5", new SymbolType[] { iff, id, num, id,
+		checkLexer(lexer, "if ia0 1 a1.5", new SymbolType[] { iff, id, num, id,
 				real, eof });
 		checkLexer(lexer, "if/*aa<bb*/aa<bb", new SymbolType[] { iff,
 				commentText, commentText, commentText, id, ur, id, eof });
+		checkLexer(lexer, "if 2000.2000a0\nif 5 10", new SymbolType[] { iff,
+				real, id, iff, num, num, eof });
+		checkLexer(lexer, "1/*2/*//*/**/*/**/if*/if", new SymbolType[] { num,
+				commentText, commentText, commentText, commentText, iff, eof });
 	}
 
 	private static void checkLexer(Lexer lexer, String input,
 			SymbolType[] outputTypes) {
-		List<Symbol> output = Utils.toList(lexer.lex(new StringReader(input)));
+		// simple test
+		lexerLineNumberAndPositionTest(lexer, input,
+				outputTypes[outputTypes.length - 1]);
 
-		System.out.println(output);
+		List<Symbol> output = Utils.toList(lexer.lex(new StringReader(input)));
 
 		// check types
 		Utils.check(output.size() == outputTypes.length, "Bad output length!");
@@ -333,7 +343,7 @@ public class LexTests {
 
 		regexNfaTest();
 
-		// regexLexerGeneratorTest();
+		regexLexerGeneratorTest();
 
 		System.out.println("All lex tests passed!");
 	}
