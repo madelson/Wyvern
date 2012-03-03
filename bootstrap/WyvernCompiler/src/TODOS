@@ -19,3 +19,178 @@ case Sqrt(x) where x is an int => ...
 * methods for finding all matches to a pattern in an iterable (note: sequence patterns vs item patterns)
 * ranges [1 to 5) or [1 to 5] (.. or to)?
 * iterator decorator that allows watchers (e. g. for tracking line number, etc.). Decorator for mark/pushback, watcher for line number tracking (save/restore state!)
+
+Things to prevent:
+-overuse of inheritance
+	* prefer extensions, interfaces, delegation
+	NO inheritance, just interfaces BUT interfaces can have implementations of methods & default implementations
+	DELEGATION: unimplemented methods pass through to an underlying object
+	Problems with inheritance:
+		tight coupling
+		misplacement of utility methods
+		hard-to-trace code which weaves in and out of base classes
+		Containment would be better (e. g. base tests in APT should be test environments)
+		Rare support for multiple inheritance
+	Benefits:
+		polymorphism
+		shared boilerplate (e. g. field declaration)
+		ability to make complex interface easy to implement (e. g. abstract collections in java)
+		
+	Java-style interfaces get you:
+		polymorphism
+		multiple inheritance
+		
+	Mixins/traits get you:
+		interfaces but with the opportunity to share code across implementations
+		-> what makes a mixin different from a base class?
+			can't declare fields (but this doesn't matter when all fields are properties...)
+			can't have private stuff (but people will just use protected)
+				could require public get for all props, protected or public set
+	
+	Extension methods get you:
+		same thing as mixin with "final" methods, except can overload extension methods in different ways
+		problems: can be like method hiding, which is confusing
+		benefits: removes need for utility methods to be part of interfaces (e. g. most String methods don't need private access)			
+-bad cascading & builder proliferation
+	* use comma "auto cascades"
+-fields instead of properties
+	* everything is a property, even if it looks like a field
+	
+Nullable types:
+	-in Wyvern, null is not a valid value except on nullable types
+	-if T is non-nullable, T? is the nullable type
+		-but, if T is int?, T? is still int?
+	-you have to cast/.Value a nullable to get the value
+	-someVariable.Type will NEVER return a nullable type: you'll always get a type or a null reference exception
+	-if A extends B then
+		-A? extends B?
+		-A extends A? (so A extends B?)
+		-A? does not extend A or B
+	-(A?) is a separate type variable from (A) (although in practice it could delegate most calls to the (A) object
+	-can also unpack with ??
+	
+Things to push:
+Functional programming
+LINQy syntax
+Reflection
+	* easy and not ugly even with attributes
+	* reflect over public types / methods
+	* type objects make it easy to get at methods/properties
+		type.properties (instance)
+		type.staticProperties
+		type.allProperties (static & instance)
+		same for methods, attributes
+		.attributes
+		.getAttribute<TAttribute>()
+	
+Core types:
+	-Object alias obj
+	-Integer64 alias int		
+	-Byte alias byte (unsigned byte)
+	-Character32 alias char (unsigned char)
+	-Sequence<T> alias seq<T>
+	-Iterator<T>
+	-ImmutableArray<char> alias str
+	-Tuple<T[]> tuple type with value semantics
+	-Action<T[]> void function alias (T1, T2) => void
+	-Function<T[], TReturn> alias (T1, T2) => TReturn
+	-Type alias type?
+	-Platform types
+
+Syntax:
+	-c# style lambdas: (int a, int b) => 2 + a + b
+	-implicitly-typed, loosely declared vars (e. g. x = 10;)
+	-can just use A instead of A.class or typeof(A). When you need to differentiate btw static access (default) and
+		accessing a member of the type object, A.x is static and (A).x is the x member of the type object?
+	-"or if null operator" ?? like in c# can unpack nullables
+	-chaining mylist.skip(1).take(1)
+	-null-safe chaining category.hierarchy.?hierarchylevel will fail if category is null but will return null if hierarchy is null OR hierarchylevel is null
+	-comma cascading: message.write(),send() returns the return value of send() or else the original message object if send() returns void
+		-note that parens in lists, args, etc are given precedence over cascades (but you can just wrap it in parens) (e. g. print((message.write(), send())))
+	-and, or, ! as both bitwise and boolean operators
+	-ternary operator condition ? 1 : 2
+	-member access: list.sort, get list.size, set list[], List<int>.sort gives a method that takes a List<int> and an order<int> 
+		- these return functions / member metadata
+	-strong generics with c# syntax
+	-strings:
+		-normal "" syntax
+		-@"raw" syntax
+	-no parens required for if, for, etc. but you do need braces
+		- if model.hasItem and !model.isNew { do something }
+	-dynamic access to objects with "->" operator
+		- model->isNew (throws exception if there's no property or method isNew)
+		- safely, with model->?isNew
+		- dynamic access returns obj? UNLESS there's an implicit type for the result
+			- e. g. bool x = model->isNew; will crash with cast exception unless the result is bool
+	-using keyword like in c#, but 3 ways to use
+		- using(x = disposable()) { }
+		- using(predefineddisposable) {}
+		- using(disposableexpression) without braces returns the expression, but guarantees disposal at the end of the current scope (do we want this?)
+	-control flow
+		- if a {} else if b {} else {}
+			- could just compile to case, but you have to be careful about break/continue treatment
+		- for loops, both traditional (c-style) (for decl; condition; increment {}) and java/c# foreach: for x in list { }
+			- break and continue
+			- "on" blocks:
+				- these are declared after the loop
+					- on break {} runs after the loop breaks
+					- on finish {} runs when the loop condition returns false
+					- on continue {} runs immediately after each continue
+				- this is decared inside the loop
+					- on first {} runs on the first iteration (can have multiple of these inside loop)
+		- case statements (like switch, but more general)
+			- either case(value) or just case { }
+			- case (obj) { when a: do(); break; else: break; }
+			- all except the last when must end in break (exit case), return (return from func), or continue (fall through)
+			- supports on break
+			- when bool expression
+			- when object (checks equality: equivalent to when value == object) (how does this work for bools/patterns?) 
+			- when pattern
+				- patterns can be any object that implements IPattern
+				- custom extractable patterns e. g. something like when MathPatterns.squareOf { a }
+				- enumerable patterns (e. g. [val, 1, 2, ...])
+				- Type or Type varname
+				- regexes (these implement IPattern with custom extract for the match)
+	- error handling
+		- distinction between errors (bugs) and exceptions (unexpected but non-buggy occurrences)
+		- runtime where checks on functions throw errors
+			- e. g. int foo(int x) where x >= 0 { return x + 1; }
+		- fail pseudo-function used to crash
+			- fail(Exception/Error) fails with a certain error
+			- fail(string, optional other data) is short for fail(Error(string, other data))
+		- try { } block supports on fail (any exception), on fail(ExceptionType), or on fail(ExceptionType e)
+			- also supports finally {}
+		- using block supports on fail as well: the using object is available in the on fail block!
+	- equality and comparison
+		- == (equiv. to method Object.equals(a, b)) which does some null/type checks and then calls a.equals(b)
+		- != equiv to !Object.equals(a, b)
+		- getHash() method must be overriden with equals()
+		- The IComparable interface provides int compareTo() which is defined as in java
+			- automatically enables operators <, >, <=, >= (are these methods or direct translations?)
+			- IComparable overrides equals() to compareTo == 0
+			- IComparable requires that getHash() be overriden to match equality. This may seem like a nuisance but few types
+				implement IComparable
+		- Object.areIdentical(a, b) provides reference equality, which you really shouldn't need very much
+		- reference types default to an implementation of equals() that just calls isIdenticalTo()
+		- value types override equals() and isIdenticalTo() with field-by-field comparisons
+		- the collection types don't have equality definitions (as they do in java). Rather, there are Equality objects that
+			can be used for determining list/set/map equality
+	- collections
+		- sequence syntax (optional type)[1, 2, 3] default is List if no type is specified
+		- tuple syntax (1, 2) or (x: 1, y: 2) (or (1 : 2) for key-value pairs?)
+		- map syntax { (1 : 2), (2 : 3) } equivalent to Map[(key: 1, value: 2)]
+		- indexer syntax a.get(T key) can be called as a[key], set(T key, V value) can be called as a[key] = value		 
+		
+Libraries:
+	-Collections: good collections is a core proposition of Wyvern
+		-The root of the collection hierarchy is a Sequence (iterable)
+		-every other collection has a corresponding View type which is immutable
+		-Array: indexable sequence
+		-Collection: sequence with add/remove/modCount
+		-List is Array, Collection
+		-Set is Collection of unique elements sets have an equalityComparer property
+		-Map is Set of (key, value) tuples. It has a key equality comparer which is used to derive it's set equality comparer
+		-specialized collections
+			- immutable collections
+	
+		

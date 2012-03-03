@@ -1,0 +1,81 @@
+type ArrayView<T> is seq<T> {
+	T get(int index);
+		
+	default override ArrayView<T> inReverse() {
+	}
+	
+}
+
+type ArrayList<T> is List<T> {
+	private PlatformArray<T> items;
+	
+	private int size = 0;
+	
+	ArrayList() {
+		this(16);
+	}
+	
+	ArrayList(int initialCapacity)
+		where initialCapacity >= 0 {
+		.items = new PlatformArray<T>(initialCapacity);
+	}
+	
+	void trimToSize() {
+		.modified();
+		if .size < .items.size {
+			.items = .items.copyOfRange(.size);
+		}
+	}
+	
+	void ensureCapacity(int minCapacity) {
+		.modified();
+		oldCapacity = .items.size;
+		if minCapacity > oldCapacity {
+			oldItems = .items;
+			newCapacity = ((oldCapacity * 3) / 2) + 1;
+			if newCapacity < minCapacity {
+				newCapacity = minCapacity;
+			}
+			.items = .items.copyOfRange(newCapacity);
+		}
+	}
+	
+	override bool contains(obj? o) {
+		return .indexOf(o) >= 0;
+	}
+	
+	override int indexOf(obj? o) {
+		for i = 0; i < .size; i++ {
+			if .items[i] == o {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	override lastIndexOf(obj? o) {
+		for i = .size - 1; i >= 0; i-- {
+			if .items[i] == o {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	override T get(int index) {
+		.rangeCheck(index);
+		return .items[index];
+	}
+	
+	override set(int index, T item) {		
+		.rangeCheck(index);
+		.modified();
+		.items[index] = item;
+	}
+	
+	override add(T item) {
+		.ensureCapacity(.size + 1);
+		.items[.size] = item;
+		.size++;
+	}
+}
