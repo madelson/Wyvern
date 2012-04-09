@@ -7,6 +7,7 @@ import java.io.StringReader;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -328,5 +329,21 @@ public class Regex {
 		Utils.check(singleCharSymbol.text().length() == 1);
 
 		return singleCharSymbol.text().charAt(0);
+	}
+	
+	/**
+	 * Returns a pattern that matches the literal pattern
+	 */
+	public static String escape(String pattern) {
+		Iterator<Symbol> symbols = lexer().lex(new StringReader(pattern));
+		StringBuilder sb = new StringBuilder();
+		for (Symbol next = symbols.next(); !next.type().equals(context.eofType()); next = symbols.next()) {
+			if (!next.type().equals(CHAR)) {
+				sb.append(ESCAPE.name());
+			}
+			sb.append(next.text());
+		}
+		
+		return sb.toString();
 	}
 }

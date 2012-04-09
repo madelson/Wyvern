@@ -176,6 +176,23 @@ public class LexTests {
 		checkNfa(auto, 3, 2, 1);
 	}
 
+	public static void regexEscapeTest() {
+		String[] inputs = new String[] {
+				"abc",
+				"a*b",
+				"*?[]ab()\\n\n",
+		},
+		outputs = new String[] {
+				"abc",
+				"a\\*b",
+				"\\*\\?\\[\\]ab\\(\\)\\\\n\n"
+		};
+		for (int i = 0; i < inputs.length; i++) {
+			String escaped = Regex.escape(inputs[i]);
+			Utils.check(outputs[i].equals(escaped), escaped + " != " + outputs[i]);
+		}
+	}
+	
 	private static FiniteAutomaton<SymbolType, Character> createSimpleNfa(
 			String regex) {
 		Symbol parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
@@ -342,6 +359,8 @@ public class LexTests {
 		basicRegexTest();
 
 		regexNfaTest();
+		
+		regexEscapeTest();
 
 		regexLexerGeneratorTest();
 
