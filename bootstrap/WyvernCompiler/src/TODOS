@@ -175,11 +175,51 @@ Syntax:
 		- value types override equals() and isIdenticalTo() with field-by-field comparisons
 		- the collection types don't have equality definitions (as they do in java). Rather, there are Equality objects that
 			can be used for determining list/set/map equality
+	- operator overloading
+		- not overloading, implementing!
+			- the idea is to discourage using things like + or << to mean something other than plus or bit shift
+		- the numeric operators +, -, /, *, ^ can all be overriden
+		- as can the bitwise operators and, or, xor, !, <<, >>, >>>
+		- +=, >>=, etc. come for free and cannot have their own definitions
+		- operators are overridden via like-named methods. There are two types of overridable operators
+			- unrestricted: + and - need only fit the signature T plus(V value)
+				- this allows support for string concatentation with +, datetime + duration, etc.
+			- restricted: the other operators require that the type implement numeric or bitwise:
+				- each interface requires all the corresponding operators, which should discourage misues
+				- e. g. "and" must take 2 bitwise and return a bitwise
+				- e. g. int types would implement numeric and bitwise
+				- this would allow for a bitset type that implemented all of the bitwise operators!
+				- note that unary minus in included in this group
 	- collections
 		- sequence syntax (optional type)[1, 2, 3] default is List if no type is specified
 		- tuple syntax (1, 2) or (x: 1, y: 2) (or (1 : 2) for key-value pairs?)
 		- map syntax { (1 : 2), (2 : 3) } equivalent to Map[(key: 1, value: 2)]
 		- indexer syntax a.get(T key) can be called as a[key], set(T key, V value) can be called as a[key] = value		 
+		- range syntax [a .. b] (inclusive) or [a .. b) exclusive
+			- [1 .. 10 by 2] has 1, 3, 5, 7, 9
+			- syntax is [T .. (T) (by V)]
+			- by V can be ignored if T is numeric (and thus has value for 1), but V must always be numeric
+			- V is not necessarily T because you can do something like [DateTime.Now .. date by 1hr)
+			- first can also be exclusive (1 .. 5) has 2, 3, 4
+			- can omit the second value for an infinite range e. g. the multiples of ten are [0 .. by 10). Infinite ranges must end in ) squares are [0 .. ).select(i => i * i);
+			- should we restrict to ints because of floating point issues (e. g. 1.0 .. 10.0 by .1 might not include 10? Could just limit to )-ended
+			- types given determine the type returned (e. g. known count?)
+			- support for in in place of by? e. g. [k .. n in 10]
+	- constructors
+		- declared as new()
+		ViewModel#replace
+		str.replace
+		str:replace
+		str@replace
+		@ViewModel
+		@str.is(@obj)
+		str#.is(obj#)
+		model.hierarchy.level
+		model.hierarchy.?level
+		model.hierarchy?.level
+		model.hierarchy->?level
+		model.hierarchy?->level
+	
 		
 Libraries:
 	-Collections: good collections is a core proposition of Wyvern
@@ -193,4 +233,19 @@ Libraries:
 		-specialized collections
 			- immutable collections
 	
-		
+Tasks to simplify:
+	Data handling: how to navigate & use complex object graphs
+	- easy reflection over properties
+	- easy cloning/augmenting
+	- easy equals/hash impl
+	- automatically generate immutable & read-only views and conversion methods (e.g. myRecord.view, myRecord.toImmutable)
+	- safe access .?, ->?
+	- dynamic access ->
+	- deep access a..b might be a.c.b or a.d.b or a.e.f.b. Not allowed if ambiguous
+		- deep dynamic access a->->b is SLOW... ambiguity checked at runtime
+		- safe still works, as in a..?b: it's safe all the way through!
+	- convenient init syntax
+	- anonymous tuple types
+	- convert records to collections (e. g. dictionaries)
+	- maybe records are just a special case of collections!?
+	- these plus LINQy functional collection manipulation should make for very powerful and concise data handling
