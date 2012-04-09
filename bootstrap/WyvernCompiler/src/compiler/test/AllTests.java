@@ -33,6 +33,10 @@ public class AllTests {
 		LexTests.main(args);
 		printTime(start);
 		
+		start = System.currentTimeMillis();
+		WyvernGrammarTests.main(args);
+		printTime(start);
+		
 		System.out.println("\nAll tests passed!");
 		printTime(originalStart);
 	}
