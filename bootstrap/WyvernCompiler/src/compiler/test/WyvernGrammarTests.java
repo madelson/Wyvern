@@ -59,7 +59,6 @@ public class WyvernGrammarTests {
 					}
 				}
 
-				System.out.println(symbols);
 				Utils.check(types.equals(Arrays.asList(testCase.item2())),
 						types + " != " + Arrays.asList(testCase.item2()));
 			}
