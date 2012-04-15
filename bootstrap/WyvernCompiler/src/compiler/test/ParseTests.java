@@ -366,11 +366,98 @@ public class ParseTests {
 		if (!expected) {
 			Utils.check(!rawResult.succeeded(), "Shouldn't have succeeded!");
 		}
-		
-		Utils.check(rawResult.succeeded()); 	
+
+		Utils.check(rawResult.succeeded());
 		String program = "1-1+1*1+1*-1--1";
-		Symbol root = rawResult.parser().parse(lexer.lex(new StringReader(program))).parseTree();
+		Symbol root = rawResult.parser()
+				.parse(lexer.lex(new StringReader(program))).parseTree();
 		Utils.check(program.equals(root.text()));
+	}
+
+	public static void makeListTest(ParserGenerator generator, boolean expected) {
+		SymbolType sep = comma, el = x, list = L;
+		List<Production> productions;
+		String single = "x", separatedListNoTrailingSeparator = "x,x,x,x", separatedListTrailingSeparator = "x,x,x,", unseparatedList = "xxxx", justSeparator = ",", leadingSeparator = ",x,x";
+		Map<String, Boolean> map = new HashMap<String, Boolean>();
+		map.put(single, true);
+		map.put(justSeparator, false);
+		map.put(leadingSeparator, false);
+		
+		// list with separator, can be empty, can have trailing
+		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowEmpty, Production.ListOptions.AllowTrailingSeparator);
+		map.put("", true);
+		map.put(separatedListNoTrailingSeparator, true);
+		map.put(separatedListTrailingSeparator, true);
+		map.put(unseparatedList, false);		
+		testParser(generator, list, productions, map, expected);
+		
+		// list with separator, can be empty, cannot have trailing
+		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowEmpty);
+		map.put("", true);
+		map.put(separatedListNoTrailingSeparator, true);
+		map.put(separatedListTrailingSeparator, false);
+		map.put(unseparatedList, false);		
+		testParser(generator, list, productions, map, expected);
+
+		// list with separator, cannot be empty, can have trailing
+		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowTrailingSeparator);
+		map.put("", false);
+		map.put(separatedListNoTrailingSeparator, true);
+		map.put(separatedListTrailingSeparator, true);
+		map.put(unseparatedList, false);		
+		testParser(generator, list, productions, map, expected);
+		
+		// list with separator, cannot be empty, cannot have trailing
+		productions = Production.makeList(list, el, sep);
+		map.put("", false);
+		map.put(separatedListNoTrailingSeparator, true);
+		map.put(separatedListTrailingSeparator, false);
+		map.put(unseparatedList, false);		
+		testParser(generator, list, productions, map, expected);
+		
+		// list with no separator, can be empty
+		productions = Production.makeList(list, el, null, Production.ListOptions.AllowEmpty);
+		map.put("", true);
+		map.put(separatedListNoTrailingSeparator, false);
+		map.put(separatedListTrailingSeparator, false);
+		map.put(unseparatedList, true);		
+		testParser(generator, list, productions, map, expected);
+
+		// list with no separator, cannot be empty
+		productions = Production.makeList(list, el, null);
+		map.put("", false);
+		map.put(separatedListNoTrailingSeparator, false);
+		map.put(separatedListTrailingSeparator, false);
+		map.put(unseparatedList, true);		
+		testParser(generator, list, productions, map, expected);
+	}
+
+	private static void testParser(ParserGenerator generator,
+			SymbolType startSymbol, Collection<Production> productions,
+			Map<String, Boolean> programStrings, boolean expected) {
+		Grammar g = new Grammar(c, "test", startSymbol, productions,
+				Precedence.defaultFunction());
+		ParserGenerator.Result result = generator.generate(g);
+		Utils.check(expected == (result.parser() != null));
+		if (!expected) {
+			return;
+		}
+		
+		Parser parser = result.parser();
+		for (String prog : programStrings.keySet()) {
+			boolean succeeded = false;
+			try {
+				Parser.Result parserResult = parser.parse(lexer.lex(new StringReader(prog)));
+				succeeded = parserResult.parseTree() != null;
+				if (succeeded) {
+					Symbol root = parserResult.parseTree();
+					Utils.check(prog.equals(root.text()));
+				}
+			} catch (Exception ex) {
+				succeeded = false;
+			}
+			Utils.check(succeeded == programStrings.get(prog), prog + " succeeded = " + succeeded);
+		}		
 	}
 
 	/**
@@ -406,6 +493,11 @@ public class ParseTests {
 		check335(slr, true);
 		check335(lr1, true);
 		check335(lalr, true);
+		
+		makeListTest(lr0, false);
+		makeListTest(slr, true);
+		makeListTest(lalr, true);
+		makeListTest(lr1, true);
 
 		System.out.println("All parse tests passed!");
 	}

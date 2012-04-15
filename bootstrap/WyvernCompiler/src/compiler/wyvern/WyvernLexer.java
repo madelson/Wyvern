@@ -47,10 +47,12 @@ public class WyvernLexer {
 			OR = CONTEXT.getTerminalSymbolType("or"),
 			IF = CONTEXT.getTerminalSymbolType("if"),
 			ELSE = CONTEXT.getTerminalSymbolType("else"),
+			USING = CONTEXT.getTerminalSymbolType("using"),
 			TYPE = CONTEXT.getTerminalSymbolType("type"),
 			PRIVATE = CONTEXT.getTerminalSymbolType("private"),
 			FAMILY = CONTEXT.getTerminalSymbolType("family"),
 			ACCESS = CONTEXT.getTerminalSymbolType("."),
+			COMMA = CONTEXT.getTerminalSymbolType(","),
 			STRING_TERMINATOR = CONTEXT.getTerminalSymbolType("\""),
 			STRING_TEXT = CONTEXT.getTerminalSymbolType("string text"),
 			ESCAPE = CONTEXT.getTerminalSymbolType("\\"),
@@ -108,26 +110,10 @@ public class WyvernLexer {
 	private static LinkedHashSet<LexerAction> getSimpleSymbolTypeActions() {
 		SymbolType[] simpleTypes = new SymbolType[] {
 			LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LCARET, RCARET,
-			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STATEMENT_END,
-			IF, ELSE, TYPE, PRIVATE, FAMILY, TRUE, FALSE,
+			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STATEMENT_END, ACCESS, COMMA,
+			IF, ELSE, TYPE, PRIVATE, FAMILY, TRUE, FALSE, USING,
 			OBJECT_ALIAS, STRING_ALIAS, INT_ALIAS, BOOLEAN_ALIAS, CHAR_ALIAS, SEQUENCE_ALIAS
 		};
-		
-		// sort by length descending so that => is matched over =, >
-//		Arrays.sort(simpleTypes, new Comparator<SymbolType>() {
-//
-//			@Override
-//			public int compare(SymbolType a, SymbolType b) {
-//				if (a.name().length() > b.name().length()) {
-//					return -1;
-//				} else if (a.name().length() == b.name().length()) {
-//					return 0;
-//				}
-//
-//				return 1;
-//			}
-//
-//		});
 		
 		LinkedHashSet<LexerAction> actions = Utils.set();
 		for (SymbolType simpleType : simpleTypes) {

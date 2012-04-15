@@ -133,4 +133,77 @@ public class Production {
 
 		return types;
 	}
+	
+	public static enum ListOptions {
+		AllowTrailingSeparator,
+		AllowEmpty,
+	}
+	
+	/**
+	 * TODO: support automatically adding common error types for unexpected trailing/leading separator or non-empty
+	 */
+	public static List<Production> makeList(SymbolType listType, SymbolType elementType, SymbolType separatorType, ListOptions... listOptionsArray) {
+		List<Production> listProductions = new ArrayList<Production>();		
+		List<ListOptions> listOptions = Arrays.asList(listOptionsArray);
+
+		if (listOptions.contains(ListOptions.AllowTrailingSeparator)) {
+			Utils.check(separatorType != null);			
+			
+			if (listOptions.contains(ListOptions.AllowEmpty)) {
+				listProductions.add(new Production(listType, elementType, separatorType, listType));
+				listProductions.add(new Production(listType, elementType));
+				listProductions.add(new Production(listType));
+			} else {
+				listProductions.add(new Production(listType, elementType, separatorType, listType));
+				listProductions.add(new Production(listType, elementType, separatorType));
+				listProductions.add(new Production(listType, elementType));
+			}
+		} else {
+			if (separatorType != null) {
+				if (listOptions.contains(ListOptions.AllowEmpty)) {
+					// This is a tough case. You can't put any types before or after listType, since it may be empty and
+					// cannot have a trailing separator. Thus, we need to make use of another symbol
+					
+					// make lists of generated type that can't be empty or have trailing separators
+					// TODO: support auto-generated types to solve cases like this
+					SymbolType generatedListType = listType.context().getNonTerminalSymbolType("__makeList:" + listType.name());
+					listProductions.addAll(makeList(generatedListType, elementType, separatorType));
+					
+					// then allow a list to be a generatedListType or empty
+					listProductions.add(new Production(listType, generatedListType));
+					listProductions.add(new Production(listType));
+				} else {
+					listProductions.add(new Production(listType, elementType, separatorType, listType));					
+					listProductions.add(new Production(listType, elementType));										
+				}
+			} else {
+				if (listOptions.contains(ListOptions.AllowEmpty)) {
+					listProductions.add(new Production(listType, elementType, listType));
+					listProductions.add(new Production(listType));
+				} else {
+					listProductions.add(new Production(listType, elementType, listType));
+					listProductions.add(new Production(listType, elementType));					
+				}
+			}
+		}
+		
+//		SymbolType[] childTypes = separatorType != null
+//			? new SymbolType[] { elementType, separatorType, listType }
+//			: new SymbolType[] { elementType, listType };
+//		listProductions.add(new Production(listType, childTypes));
+//		
+//		// lists with separators or lists without separators that can't be empty need explicit support
+//		// for the singleton list since the "element [sep] list" production doesn't support it in that case 
+//		if (separatorType != null || !canBeEmpty) {
+//			listProductions.add(new Production(listType, elementType));
+//		}
+//		
+//		if (canBeEmpty) {
+//			listProductions.add(new Production(listType));
+//		} else {
+//			listProductions.add(new Production(listType, elementType));			
+//		}
+				
+		return listProductions;
+	}
 }

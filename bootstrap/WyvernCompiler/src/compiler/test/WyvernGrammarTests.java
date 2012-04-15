@@ -39,7 +39,8 @@ public class WyvernGrammarTests {
 		testCases.addAll(Utils.set(TestCase.make("int", null, WyvernLexer.INT_ALIAS),
 				TestCase.make("obj 2 + 20.25 i280.2", null, WyvernLexer.OBJECT_ALIAS, WyvernLexer.INT, WyvernLexer.PLUS, WyvernLexer.REAL, WyvernLexer.IDENTIFIER, WyvernLexer.REAL),
 				TestCase.make("'a''\\n'/*x/**/*/", null, WyvernLexer.CHAR, WyvernLexer.CHAR, WyvernLexer.COMMENT_START, WyvernLexer.COMMENT_TEXT, WyvernLexer.COMMENT_START, WyvernLexer.COMMENT_END, WyvernLexer.COMMENT_END),
-				TestCase.make("\n\n\t \" \\\"\"", null, WyvernLexer.STRING_TERMINATOR, WyvernLexer.STRING_TEXT, WyvernLexer.ESCAPE, WyvernLexer.STRING_TEXT, WyvernLexer.STRING_TERMINATOR)));
+				TestCase.make("\n\n\t \" \\\"\"", null, WyvernLexer.STRING_TERMINATOR, WyvernLexer.STRING_TEXT, WyvernLexer.ESCAPE, WyvernLexer.STRING_TEXT, WyvernLexer.STRING_TERMINATOR),
+				TestCase.make("a.b.C, str", null, WyvernLexer.IDENTIFIER, WyvernLexer.ACCESS, WyvernLexer.IDENTIFIER, WyvernLexer.ACCESS, WyvernLexer.TYPE_NAME, WyvernLexer.COMMA, WyvernLexer.STRING_ALIAS)));
 
 		TEST_CASES = Collections.unmodifiableList(testCases);
 	}
