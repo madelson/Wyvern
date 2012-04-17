@@ -18,7 +18,7 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 	private final Reader reader;
 	private final StringBuilder buffer = new StringBuilder();
 	private int lineNumber = 0, position = 0, markLineNumber, markPosition,
-			nextReadbufferIndex = 0;
+			nextReadBufferIndex = 0;
 	private boolean sawLineFeed = true, markSet = false, markSawLineFeed;
 
 	public LineNumberAndPositionBufferedReader(Reader reader) {
@@ -64,7 +64,7 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 		int ch;
 
 		// if there's nothing left to read from the buffer...
-		if (this.nextReadbufferIndex >= this.buffer.length()) {
+		if (this.nextReadBufferIndex >= this.buffer.length()) {
 			ch = this.reader.read();
 
 			// EOF case: don't update line and position info
@@ -80,10 +80,10 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 		}
 		// still need to read chars from the buffer
 		else {
-			ch = this.buffer.charAt(this.nextReadbufferIndex);
+			ch = this.buffer.charAt(this.nextReadBufferIndex);
 		}
 
-		this.nextReadbufferIndex++;
+		this.nextReadBufferIndex++;
 
 		// if the last character was \n, this is the first character
 		// of a new line, so update line and position
@@ -128,8 +128,8 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 
 		// delete any buffered characters we've already read since
 		// now they're behind the mark
-		this.buffer.delete(0, this.nextReadbufferIndex);
-		this.nextReadbufferIndex = 0;
+		this.buffer.delete(0, this.nextReadBufferIndex);
+		this.nextReadBufferIndex = 0;
 		this.markSet = true;
 	}
 
@@ -147,7 +147,7 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 		this.position = this.markPosition;
 		this.sawLineFeed = this.markSawLineFeed;
 
-		this.nextReadbufferIndex = 0;
+		this.nextReadBufferIndex = 0;
 	}
 
 	/**
@@ -156,7 +156,7 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 	public int offsetFromMark() {
 		Utils.check(this.markSet, "Cannot reset without first setting a mark!");
 
-		return this.nextReadbufferIndex;
+		return this.nextReadBufferIndex;
 	}
 
 	/**

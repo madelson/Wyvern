@@ -53,6 +53,7 @@ public class WyvernLexer {
 			FAMILY = CONTEXT.getTerminalSymbolType("family"),
 			ACCESS = CONTEXT.getTerminalSymbolType("."),
 			COMMA = CONTEXT.getTerminalSymbolType(","),
+			COLON = CONTEXT.getTerminalSymbolType(":"),
 			STRING_TERMINATOR = CONTEXT.getTerminalSymbolType("\""),
 			STRING_TEXT = CONTEXT.getTerminalSymbolType("string text"),
 			ESCAPE = CONTEXT.getTerminalSymbolType("\\"),
@@ -72,7 +73,8 @@ public class WyvernLexer {
 			FALSE = CONTEXT.getTerminalSymbolType("false"),
 			BOOLEAN_ALIAS = CONTEXT.getTerminalSymbolType("bool"),
 			SEQUENCE_ALIAS = CONTEXT.getTerminalSymbolType("seq"),
-			STATEMENT_END = CONTEXT.getTerminalSymbolType(";");
+			STMT_END = CONTEXT.getTerminalSymbolType(";"),
+			PACKAGE = CONTEXT.getTerminalSymbolType("package");
 	
 	static {
 		LinkedHashSet<LexerAction> actions = Utils.<LexerAction>set();
@@ -110,8 +112,8 @@ public class WyvernLexer {
 	private static LinkedHashSet<LexerAction> getSimpleSymbolTypeActions() {
 		SymbolType[] simpleTypes = new SymbolType[] {
 			LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LCARET, RCARET,
-			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STATEMENT_END, ACCESS, COMMA,
-			IF, ELSE, TYPE, PRIVATE, FAMILY, TRUE, FALSE, USING,
+			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STMT_END, ACCESS, COMMA, COLON,
+			IF, ELSE, TYPE, PRIVATE, FAMILY, TRUE, FALSE, USING, PACKAGE,
 			OBJECT_ALIAS, STRING_ALIAS, INT_ALIAS, BOOLEAN_ALIAS, CHAR_ALIAS, SEQUENCE_ALIAS
 		};
 		

@@ -249,3 +249,17 @@ Tasks to simplify:
 	- convert records to collections (e. g. dictionaries)
 	- maybe records are just a special case of collections!?
 	- these plus LINQy functional collection manipulation should make for very powerful and concise data handling
+	
+-------------------------------
+
+Small examples:
+
+method declaration
+
+attributes name[generics](args) [: return type] [where statements] {
+}
+
+example:
+public Cached lookup<T>(T key) : Record
+	where T is IComparable<T> {
+};
