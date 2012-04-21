@@ -139,9 +139,10 @@ public abstract class LRGenerator implements ParserGenerator {
 							token.type());
 
 					if (action == null) {
-//						System.err.println("No action found:");
-//						System.err.println("at " + this.stateStack.getFirst());
-//						System.err.println("on token " + token);
+						// System.err.println("No action found:");
+						// System.err.println("at " +
+						// this.stateStack.getFirst());
+						// System.err.println("on token " + token);
 						// System.out.println(this.stateStack.getFirst());
 						// for (Map.Entry<SymbolType, Object> e : table.get(
 						// this.stateStack.getFirst()).entrySet())
