@@ -20,6 +20,13 @@ public class Context {
 	}
 
 	/**
+	 * Returns the types currently registered on the context
+	 */
+	public Collection<SymbolType> types() {
+		return this.types.values();
+	}
+
+	/**
 	 * The start symbol for all grammars
 	 */
 	public SymbolType startType() {
@@ -239,25 +246,90 @@ public class Context {
 
 					@Override
 					public int line() {
-						return children.isEmpty() ? -1 : children.get(0).line();
+						// MA 4/21/12 we have to be careful here, since we don't
+						// want to return -1
+						// just because the symbol at the beginning/end of the
+						// list is empty (e. g. a
+						// linked-list terminator). Thus, we walk the list and
+						// take the first symbol
+						// with a known position. A TODO for the future would be
+						// to have a way to
+						// initialize empty symbols with line numbers and
+						// positions instead of children
+						for (Symbol child : children) {
+							int line = child.line();
+							if (line != -1) {
+								return line;
+							}
+						}
+
+						return -1;
 					}
 
 					@Override
 					public int endLine() {
-						return children.isEmpty() ? -1 : Utils.last(children)
-								.endLine();
+						// MA 4/21/12 we have to be careful here, since we don't
+						// want to return -1
+						// just because the symbol at the beginning/end of the
+						// list is empty (e. g. a
+						// linked-list terminator). Thus, we walk the list and
+						// take the first symbol
+						// with a known position. A TODO for the future would be
+						// to have a way to
+						// initialize empty symbols with line numbers and
+						// positions instead of children
+						for (int i = children.size() - 1; i >= 0; i--) {
+							int endLine = children.get(i).endLine();
+							if (endLine != -1) {
+								return endLine;
+							}
+						}
+
+						return -1;
 					}
 
 					@Override
 					public int position() {
-						return children.isEmpty() ? -1 : children.get(0)
-								.position();
+						// MA 4/21/12 we have to be careful here, since we don't
+						// want to return -1
+						// just because the symbol at the beginning/end of the
+						// list is empty (e. g. a
+						// linked-list terminator). Thus, we walk the list and
+						// take the first symbol
+						// with a known position. A TODO for the future would be
+						// to have a way to
+						// initialize empty symbols with line numbers and
+						// positions instead of children
+						for (Symbol child : children) {
+							int pos = child.position();
+							if (pos != -1) {
+								return pos;
+							}
+						}
+
+						return -1;
 					}
 
 					@Override
 					public int endPosition() {
-						return children.isEmpty() ? -1 : Utils.last(children)
-								.endPosition();
+						// MA 4/21/12 we have to be careful here, since we don't
+						// want to return -1
+						// just because the symbol at the beginning/end of the
+						// list is empty (e. g. a
+						// linked-list terminator). Thus, we walk the list and
+						// take the first symbol
+						// with a known position. A TODO for the future would be
+						// to have a way to
+						// initialize empty symbols with line numbers and
+						// positions instead of children
+						for (int i = children.size() - 1; i >= 0; i--) {
+							int endPos = children.get(i).endPosition();
+							if (endPos != -1) {
+								return endPos;
+							}
+						}
+
+						return -1;
 					}
 
 					@Override
@@ -274,6 +346,7 @@ public class Context {
 								continue;
 							}
 
+							// TODO make this ignore -1 line and position numbers
 							// catch up in lines and spaces
 							int lineDiff = child.line() - lastChild.endLine(), posDiff = child
 									.position()
