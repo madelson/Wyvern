@@ -1,1 +1,55 @@
-Wyvern intends to be a general purpose programming language with multiple compilation targets. At this point the compiler is being written from the ground up in Java.
+Wyvern intends to be a general purpose, multi-paradigm programming language with multiple compilation targets (e. g. Java, .NET, Javascript). 
+
+Why do we need another general purpose programming language? 
+Although domain-specific languages are currently very popular, it is my opinion that any successful domain-specific language soon ends up becoming a bad general-purpose language, with features like OOP hacked on at the end instead of being designed into the language from the beginning. Languages like Python have proven that you don't need to be designed for a particular domain in order to be clear and easy to use in many contexts. 
+
+Why multi-paradigm?
+The functional and object-priented programming paradigms complement each other quite nicely, so gaining the benefits of both does not mean losing the benefits of either.
+
+Why support multiple compilation targets?
+Modern language development has tended toward being cross-platform in terms of operating system and machine architecture. The flaw in most such efforts, however, is that the result is not a true cross platform language but instead a new platform which is machine and operating system independent. While these platforms, such as the JVM, the .NET CLR, and the Python interpreter, allow programs to run on nearly any computer, they still leave libraries and frameworks tied to particular platforms, making it difficult or even impossible at times to pick one's language and libraries independently. Thus, by supporting multiple compilation targets, Wyvern will allow for the development of truly cross platform libraries, frameworks, and applications.
+
+Wyvern attempts to make coding easier and more concise by simplifying common tasks. Some key features are:
+	-mixins and delegation for convenient code reuse and polymorphism
+	-first-class functions and functional programming
+	-first-class reflection and meta-programming
+	-a cohesive collections library with features missing from most other languages
+		-maximal polymorphism (e. g. a list is an array, a map is a set of pairs, a string is an immutable array, everything is a sequence)
+		-collection literals
+		-functional programming support (like LINQ)
+		-type-safety via generics
+		-every mutable collection interface extends a corresponding immutable view interface, so it's easy for a type to safely expose collection properties
+		-immutable collections
+	-avoidance of null-checking logic 
+		-all references must be declared as nullable (e. g. int?, obj?) to validly accept the value null
+		-null-safe access a.?b instead of a.b
+		-"or if null then" operator	(?? in C#)
+	-no distinction between fields and properties: everything is a property!
+	-Static type checking with a focus on type inference to minimize having to specify types
+	-dynamic invocation of methods and property accessors so you can escape static typing when convenient
+	-compiler toolkit as part of the standard library
+	-a code-first approach: the Wyvern language itself is used for all build and configuration files
+	-and much more!
+
+The goal is to get the Wyvern to be self-hosting as soon as possible. To that end, the development plan is as
+follows:
+
+1. Write a compiler from the ground up in Java
+	a. Implement an LR parser generator (done)
+	b. Use the parser generator to implement a parser for regular expressions (done)
+	c. Use the regular expression implementation to implement a lexer generator (done)
+	d. Use the lexer generator to generate a lexer for Wyvern (done)
+	e. Use the parser generator to generate a parser for the Wyvern lexer output *
+	f. Implement a type-checker for the parsed AST
+	g. Implement Java as a compiler target
+2. Using the Java-based compiler, implement a subset of the Wyvern STL
+	a. Collections
+	b. Basic IO
+	c. Expressions/CodeDOM
+2. Port the compiler to Wyvern
+3. Add missing Wyvern, compiler, and library features
+	a. Better lexer/parser error handling
+	b. Ability to compile generated lexers and parsers to Wyvern code
+	
+
+	
