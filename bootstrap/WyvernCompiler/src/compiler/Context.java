@@ -46,6 +46,20 @@ public class Context {
 	public SymbolType unrecognizedType() {
 		return this.unrecognized;
 	}
+	
+	/**
+	 * Represents an optional appearance of the specified symbol
+	 */
+	public SymbolType optional(SymbolType symbolType) {
+		return this.getNonTerminalSymbolType(String.format("Option<%s>", symbolType.name()));
+	}
+	
+	/**
+	 * Represents a list of the specified symbol
+	 */
+	public SymbolType listOf(SymbolType symbolType) {
+		return this.getNonTerminalSymbolType(String.format("List<%s>", symbolType.name()));
+	}
 
 	/**
 	 * Retrieves a terminal symbol type for this context

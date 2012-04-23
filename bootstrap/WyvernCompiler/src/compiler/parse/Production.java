@@ -139,6 +139,14 @@ public class Production {
 		AllowEmpty,
 	}
 	
+	public static List<Production> makeOption(SymbolType symbolType) {
+		List<Production> optionProductions = new ArrayList<Production>();
+		optionProductions.add(new Production(symbolType.context().optional(symbolType), symbolType));
+		optionProductions.add(new Production(symbolType.context().optional(symbolType)));
+		
+		return optionProductions;
+	}
+	
 	/**
 	 * TODO: support automatically adding common error types for unexpected trailing/leading separator or non-empty
 	 */
@@ -186,23 +194,6 @@ public class Production {
 				}
 			}
 		}
-		
-//		SymbolType[] childTypes = separatorType != null
-//			? new SymbolType[] { elementType, separatorType, listType }
-//			: new SymbolType[] { elementType, listType };
-//		listProductions.add(new Production(listType, childTypes));
-//		
-//		// lists with separators or lists without separators that can't be empty need explicit support
-//		// for the singleton list since the "element [sep] list" production doesn't support it in that case 
-//		if (separatorType != null || !canBeEmpty) {
-//			listProductions.add(new Production(listType, elementType));
-//		}
-//		
-//		if (canBeEmpty) {
-//			listProductions.add(new Production(listType));
-//		} else {
-//			listProductions.add(new Production(listType, elementType));			
-//		}
 				
 		return listProductions;
 	}

@@ -431,6 +431,24 @@ public class ParseTests {
 		map.put(unseparatedList, true);		
 		testParser(generator, list, productions, map, expected);
 	}
+	
+	public static void makeOptionTest(ParserGenerator generator, boolean expected) {
+		List<Production> productions;
+		String px = "x", pstar = "*", pxx = "xx", pxstar = "x*", pstarx = "*x", pstarstar = "**";  
+		Map<String, Boolean> map = new HashMap<String, Boolean>();
+		
+		productions = Utils.toList(Arrays.asList(new Production[] { new Production(S, c.optional(x), c.optional(star)) }));
+		productions.addAll(Production.makeOption(x));
+		productions.addAll(Production.makeOption(star));
+		map.put("", true);
+		map.put(px, true);
+		map.put(pstar, true);
+		map.put(pxx, false);
+		map.put(pxstar, true);
+		map.put(pstarx, false);
+		map.put(pstarstar, false);
+		testParser(generator, S, productions, map, expected);
+	}
 
 	private static void testParser(ParserGenerator generator,
 			SymbolType startSymbol, Collection<Production> productions,
@@ -438,6 +456,15 @@ public class ParseTests {
 		Grammar g = new Grammar(c, "test", startSymbol, productions,
 				Precedence.defaultFunction());
 		ParserGenerator.Result result = generator.generate(g);
+//		if (startSymbol == S) {
+//			LRGenerator.Result res = (LRGenerator.Result) result;
+//			for (Object o : res.dfaStates()) {
+//				System.out.println(o);
+//			}
+//			for (String e : res.errors()) {
+//				System.out.println(e);
+//			}
+//		}
 		Utils.check(expected == (result.parser() != null));
 		if (!expected) {
 			return;
@@ -498,6 +525,11 @@ public class ParseTests {
 		makeListTest(slr, true);
 		makeListTest(lalr, true);
 		makeListTest(lr1, true);
+		
+		makeOptionTest(lr0, false);
+		makeOptionTest(slr, true);
+		makeOptionTest(lalr, true);
+		makeOptionTest(lr1, true);
 
 		System.out.println("All parse tests passed!");
 	}
