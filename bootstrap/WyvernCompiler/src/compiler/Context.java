@@ -55,6 +55,30 @@ public class Context {
 	}
 	
 	/**
+	 * Get the type encapsulated by this option, or null if the type is not an option type 
+	 * TODO make this more robust
+	 */
+	public SymbolType getOptionInnerType(SymbolType symbolType) {
+		if (!symbolType.isTerminal() && symbolType.name().startsWith("Option<") && symbolType.name().endsWith(">")) {
+			return this.types.get(symbolType.name().substring("Option<".length(), symbolType.name().length() - 1));
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Get the element type for this list, or null if the type is not a list type 
+	 * TODO make this more robust
+	 */
+	public SymbolType getListElementType(SymbolType symbolType) {
+		if (!symbolType.isTerminal() && symbolType.name().startsWith("List<") && symbolType.name().endsWith(">")) {
+			return this.types.get(symbolType.name().substring("List<".length(), symbolType.name().length() - 1));
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Represents a list of the specified symbol
 	 */
 	public SymbolType listOf(SymbolType symbolType) {

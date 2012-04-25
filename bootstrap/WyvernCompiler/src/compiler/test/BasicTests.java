@@ -39,6 +39,12 @@ public class BasicTests {
 		Utils.check(token.endLine() == 3);
 		Utils.check(token.endPosition() == 1);
 		
+		SymbolType x = c.getNonTerminalSymbolType("x");
+		Utils.check(c.getOptionInnerType(x) == null);
+		Utils.check(c.getOptionInnerType(c.optional(x)) == x);
+		Utils.check(c.getListElementType(x) == null);
+		Utils.check(c.getListElementType(c.listOf(x)) == x);
+		
 		// Utils
 		Map<String, Map<String, Integer>> map = new HashMap<String, Map<String, Integer>>();
 		Utils.check(Utils.put(map, HashMap.class, "a", "b", 3) == null);
