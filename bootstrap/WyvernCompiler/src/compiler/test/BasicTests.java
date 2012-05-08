@@ -45,6 +45,13 @@ public class BasicTests {
 		Utils.check(c.getListElementType(x) == null);
 		Utils.check(c.getListElementType(c.listOf(x)) == x);
 		
+		SymbolType y = c.getTerminalSymbolType("y");
+		Utils.check(c.oneOf(x, x, x).equals(c.oneOf(x, x)));
+		Utils.check(!c.oneOf(x, y).equals(c.oneOf(y)));
+		Utils.check(c.oneOf(x, y).equals(c.oneOf(y, x)));
+		Utils.check(c.getOneOfInnerTypes(x) == null);
+		Utils.check(c.getOneOfInnerTypes(c.oneOf(x, y)).equals(Utils.set(y, x)));
+		
 		// Utils
 		Map<String, Map<String, Integer>> map = new HashMap<String, Map<String, Integer>>();
 		Utils.check(Utils.put(map, HashMap.class, "a", "b", 3) == null);

@@ -26,17 +26,23 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 		for (SymbolType childType : production.childTypes()) {
 			// if we come across an undefined non-terminal
 			if (!childType.isTerminal() && !this.definedSymbols.contains(childType))
-			{
-				// if it's an option we can just define it
+			{				
 				SymbolType optionInnerType = childType.context().getOptionInnerType(childType);
+				Set<SymbolType> oneOfInnerTypes = childType.context().getOneOfInnerTypes(childType);
+				
+				// if it's an option we can just define it
 				if (optionInnerType != null) {
 					this.addAll(Production.makeOption(optionInnerType));
+				}
+				// if it's an OR we can just define it
+				if (oneOfInnerTypes != null) {
+					this.addAll(Production.makeOneOf(oneOfInnerTypes.toArray(new SymbolType[oneOfInnerTypes.size()])));
 				}
 				// if it's a recursive definition, allow it but don't count the type as defined
 				else if (childType.equals(production.symbolType())) {
 					isRecursiveDefinition = true;
 				} else {
-					Utils.err(String.format("Tried to add production \"%s\" relying on \"%s\" but there is no existing production that produces that type!", production, childType));
+					Utils.err(String.format("Tried to add production \"%s\" relying on \"%s\" but there is no existing production that produces that type!", production, childType.name()));
 				}
 			}
 		}

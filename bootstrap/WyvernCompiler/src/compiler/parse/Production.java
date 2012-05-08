@@ -197,4 +197,15 @@ public class Production {
 				
 		return listProductions;
 	}
+	
+	public static Set<Production> makeOneOf(SymbolType... symbolTypes) {
+		Set<Production> orProductions = Utils.set();
+		
+		SymbolType or = symbolTypes[0].context().oneOf(symbolTypes);
+		for (SymbolType symbolType : symbolTypes) {
+			orProductions.add(new Production(or, symbolType));
+		}
+		
+		return orProductions;
+	}
 }

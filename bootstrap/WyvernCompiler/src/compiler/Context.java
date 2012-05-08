@@ -84,6 +84,48 @@ public class Context {
 	public SymbolType listOf(SymbolType symbolType) {
 		return this.getNonTerminalSymbolType(String.format("List<%s>", symbolType.name()));
 	}
+	
+	/**
+	 * Represents an OR of the specified symbols
+	 */
+	public SymbolType oneOf(SymbolType... symbolTypes) {
+		Utils.check(symbolTypes.length > 0);
+		if (symbolTypes.length == 1) {
+			return symbolTypes[0];
+		}
+		
+		SortedSet<SymbolType> copy = new TreeSet<SymbolType>(new Comparator<SymbolType>() {
+			@Override
+			public int compare(SymbolType a, SymbolType b) {
+				return a.name().compareTo(b.name());
+			}			
+		});
+		copy.addAll(Arrays.asList(symbolTypes));
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("One<");
+		String separator = "";
+		for (SymbolType symbolType : copy) {
+			sb.append(separator).append(symbolType.name());
+			separator = ",";
+		}
+		sb.append(">");
+		
+		return this.getNonTerminalSymbolType(sb.toString());
+	}
+	
+	public LinkedHashSet<SymbolType> getOneOfInnerTypes(SymbolType symbolType) {
+		if (!symbolType.isTerminal() && symbolType.name().startsWith("One<") && symbolType.name().endsWith(">")) {
+			LinkedHashSet<SymbolType> innerTypes = Utils.set();			
+			for (String name : symbolType.name().substring("One<".length(), symbolType.name().length() - 1).split(",")) {
+				innerTypes.add(this.types.get(name));
+			}
+			
+			return innerTypes;
+		}		
+		
+		return null;
+	}
 
 	/**
 	 * Retrieves a terminal symbol type for this context
