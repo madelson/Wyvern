@@ -449,6 +449,20 @@ public class ParseTests {
 		map.put(pstarstar, false);
 		testParser(generator, S, productions, map, expected);
 	}
+	
+	public static void makeOneOfTest(ParserGenerator generator, boolean expected) {
+		Collection<Production> productions;
+		Map<String, Boolean> map = new HashMap<String, Boolean>();
+		
+		productions = Production.makeOneOf(x, star);
+		map.put("", false);
+		map.put(",", false);
+		map.put("x", true);
+		map.put("*", true);
+		map.put("x*", false);
+		map.put("xx", false);
+		testParser(generator, c.oneOf(x, star), productions, map, expected);
+	}
 
 	private static void testParser(ParserGenerator generator,
 			SymbolType startSymbol, Collection<Production> productions,
@@ -530,6 +544,11 @@ public class ParseTests {
 		makeOptionTest(slr, true);
 		makeOptionTest(lalr, true);
 		makeOptionTest(lr1, true);
+		
+		makeOneOfTest(lr0, true);
+		makeOneOfTest(slr, true);
+		makeOneOfTest(lalr, true);
+		makeOneOfTest(lr1, true);		
 
 		System.out.println("All parse tests passed!");
 	}
