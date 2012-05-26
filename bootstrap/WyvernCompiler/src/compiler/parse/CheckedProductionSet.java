@@ -6,6 +6,7 @@ package compiler.parse;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import compiler.SymbolType;
@@ -29,14 +30,19 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 			{				
 				SymbolType optionInnerType = childType.context().getOptionInnerType(childType);
 				Set<SymbolType> oneOfInnerTypes = childType.context().getOneOfInnerTypes(childType);
+				List<SymbolType> tupleInnerTypes = childType.context().getTupleInnerTypes(childType);
 				
 				// if it's an option we can just define it
 				if (optionInnerType != null) {
 					this.addAll(Production.makeOption(optionInnerType));
 				}
 				// if it's an OR we can just define it
-				if (oneOfInnerTypes != null) {
+				else if (oneOfInnerTypes != null) {
 					this.addAll(Production.makeOneOf(oneOfInnerTypes.toArray(new SymbolType[oneOfInnerTypes.size()])));
+				}
+				// if it's a tuple we can just define it
+				else if (tupleInnerTypes != null) {
+					this.addAll(Production.makeTuple(tupleInnerTypes.toArray(new SymbolType[tupleInnerTypes.size()])));
 				}
 				// if it's a recursive definition, allow it but don't count the type as defined
 				else if (childType.equals(production.symbolType())) {
