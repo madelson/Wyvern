@@ -3,6 +3,7 @@
 * Regex simplification (e. g. remove ?, +), replace some escapes
 * Error handling in parser
 * createVirtualSymbol in SymbolType (affects printing as well)
+* use listOf() and optional() symbols everywhere they're needed, possibly expand symbol API or subclass it so we can do isOption() isList() elementType()
 * support more weird escaped characters in regex (see java regex spec)
 * special (multichar) characters in ranges
 * single precedence api for parsers, dfa to nfa, and lexer generators
@@ -207,7 +208,7 @@ Syntax:
 			- support for in in place of by? e. g. [k .. n in 10]
 	- constructors
 		- declared as new()
-		ViewModel#replace
+		ViewModel#replace (also, safe mode: ViewModel#?replace -- is this relevant?)
 		str.replace
 		str:replace
 		str@replace
@@ -254,12 +255,58 @@ Tasks to simplify:
 
 Small examples:
 
-method declaration
+type declaration
 
-attributes name[generics](args) [: return type] [where statements] {
+attributes type name[generics] [is superclasses] [where statements] {
 }
 
 example:
-public Cached lookup<T>(T key) : Record
+abstract type SortedSet<TElement> is Set<TElement>
+	where TElement is IComparable<TElement> {
+}
+
+method declaration
+
+attributes name[generics](args) [=> return type] [where statements] {
+}
+
+example:
+Cached lookup<T>(T key) => Record
 	where T is IComparable<T> {
-};
+}
+
+property declaration:
+
+attributes [propertyType] name [= exp|{
+	[getter]
+	[setters]
+	[default: exp]
+}]
+
+example:
+int count {
+	private set {
+		property = value;		
+	}
+	set(double) {
+		field = value;
+	}
+}
+
+constructor declaration:
+new [name](args) [where statements] {
+}
+
+example:
+type Date {
+	new(int .ticks) {
+	}
+	
+	new fromYear(int year) {
+		this(year / ticksPerYear);
+	}
+}
+
+usage:
+d = Date(1000);
+d = Date.fromYear(2012);
