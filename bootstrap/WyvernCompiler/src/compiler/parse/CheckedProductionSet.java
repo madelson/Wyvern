@@ -28,9 +28,9 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 			// if we come across an undefined non-terminal
 			if (!childType.isTerminal() && !this.definedSymbols.contains(childType))
 			{				
-				SymbolType optionInnerType = childType.context().getOptionInnerType(childType);
-				Set<SymbolType> oneOfInnerTypes = childType.context().getOneOfInnerTypes(childType);
-				List<SymbolType> tupleInnerTypes = childType.context().getTupleInnerTypes(childType);
+				SymbolType optionInnerType = childType.context().getOptionComponentType(childType);
+				Set<SymbolType> oneOfInnerTypes = childType.context().getOneOfComponentTypes(childType);
+				List<SymbolType> tupleInnerTypes = childType.context().getTupleComponentTypes(childType);
 				
 				// if it's an option we can just define it
 				if (optionInnerType != null) {

@@ -40,8 +40,8 @@ public class BasicTests {
 		Utils.check(token.endPosition() == 1);
 		
 		SymbolType x = c.getNonTerminalSymbolType("x");
-		Utils.check(c.getOptionInnerType(x) == null);
-		Utils.check(c.getOptionInnerType(c.optional(x)) == x);
+		Utils.check(c.getOptionComponentType(x) == null);
+		Utils.check(c.getOptionComponentType(c.optional(x)) == x);
 		Utils.check(c.getListElementType(x) == null);
 		Utils.check(c.getListElementType(c.listOf(x)) == x);
 		
@@ -49,13 +49,13 @@ public class BasicTests {
 		Utils.check(c.oneOf(x, x, x).equals(c.oneOf(x, x)));
 		Utils.check(!c.oneOf(x, y).equals(c.oneOf(y)));
 		Utils.check(c.oneOf(x, y).equals(c.oneOf(y, x)));
-		Utils.check(c.getOneOfInnerTypes(x) == null);
-		Utils.check(c.getOneOfInnerTypes(c.oneOf(x, y)).equals(Utils.set(y, x)));
+		Utils.check(c.getOneOfComponentTypes(x) == null);
+		Utils.check(c.getOneOfComponentTypes(c.oneOf(x, y)).equals(Utils.set(y, x)));
 		
 		Utils.check(c.tuple(x, x).equals(c.tuple(x, x)));
 		Utils.check(!c.tuple(x, y, x).equals(c.tuple(x, y)));
-		Utils.check(c.getTupleInnerTypes(c.tuple(x, y)).equals(Arrays.asList(new SymbolType[] { x, y })));
-		Utils.check(c.getTupleInnerTypes(c.oneOf(x, y)) == null);
+		Utils.check(c.getTupleComponentTypes(c.tuple(x, y)).equals(Arrays.asList(new SymbolType[] { x, y })));
+		Utils.check(c.getTupleComponentTypes(c.oneOf(x, y)) == null);
 		
 		// Utils
 		Map<String, Map<String, Integer>> map = new HashMap<String, Map<String, Integer>>();
