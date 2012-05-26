@@ -52,6 +52,11 @@ public class BasicTests {
 		Utils.check(c.getOneOfInnerTypes(x) == null);
 		Utils.check(c.getOneOfInnerTypes(c.oneOf(x, y)).equals(Utils.set(y, x)));
 		
+		Utils.check(c.tuple(x, x).equals(c.tuple(x, x)));
+		Utils.check(!c.tuple(x, y, x).equals(c.tuple(x, y)));
+		Utils.check(c.getTupleInnerTypes(c.tuple(x, y)).equals(Arrays.asList(new SymbolType[] { x, y })));
+		Utils.check(c.getTupleInnerTypes(c.oneOf(x, y)) == null);
+		
 		// Utils
 		Map<String, Map<String, Integer>> map = new HashMap<String, Map<String, Integer>>();
 		Utils.check(Utils.put(map, HashMap.class, "a", "b", 3) == null);

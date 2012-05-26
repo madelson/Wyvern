@@ -199,6 +199,8 @@ public class Production {
 	}
 	
 	public static Set<Production> makeOneOf(SymbolType... symbolTypes) {
+		Utils.check(symbolTypes != null && symbolTypes.length > 0);
+		
 		Set<Production> orProductions = Utils.set();
 		
 		SymbolType or = symbolTypes[0].context().oneOf(symbolTypes);
@@ -207,5 +209,12 @@ public class Production {
 		}
 		
 		return orProductions;
+	}
+	
+	public static Set<Production> makeTuple(SymbolType... symbolTypes) {
+		Utils.check(symbolTypes != null && symbolTypes.length > 0);
+		
+		SymbolType tuple = symbolTypes[0].context().tuple(symbolTypes);
+		return Collections.singleton(new Production(tuple, symbolTypes));
 	}
 }

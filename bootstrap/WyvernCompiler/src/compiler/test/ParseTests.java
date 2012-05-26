@@ -464,6 +464,24 @@ public class ParseTests {
 		testParser(generator, c.oneOf(x, star), productions, map, expected);
 	}
 
+	public static void makeTupleTest(ParserGenerator generator, boolean expected) {
+		Collection<Production> productions;
+		Map<String, Boolean> map = new HashMap<String, Boolean>();
+		
+		productions = Production.makeTuple(x, star);
+		map.put("", false);
+		map.put(",", false);
+		map.put("x", false);
+		map.put("*", false);
+		map.put("x*", true);
+		map.put("xx", false);
+		map.put("*x", false);
+		map.put("xx*", false);
+		map.put("x**", false);
+		testParser(generator, c.tuple(x, star), productions, map, expected);
+	}
+
+	
 	private static void testParser(ParserGenerator generator,
 			SymbolType startSymbol, Collection<Production> productions,
 			Map<String, Boolean> programStrings, boolean expected) {
@@ -549,6 +567,11 @@ public class ParseTests {
 		makeOneOfTest(slr, true);
 		makeOneOfTest(lalr, true);
 		makeOneOfTest(lr1, true);		
+		
+		makeTupleTest(lr0, true);
+		makeTupleTest(slr, true);
+		makeTupleTest(lalr, true);
+		makeTupleTest(lr1, true);	
 
 		System.out.println("All parse tests passed!");
 	}
