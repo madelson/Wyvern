@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import compiler.Context;
 import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Utils;
@@ -45,7 +46,7 @@ public class WyvernComments {
 	static {
 		Set<Production> productions = new LinkedHashSet<Production>();
 
-		productions.addAll(Production.makeList(COMMENTED_TOKEN_LIST, COMMENTED_TOKEN, null, Production.ListOptions.AllowEmpty));
+		productions.addAll(Production.makeList(COMMENTED_TOKEN_LIST, COMMENTED_TOKEN, null, Context.ListOption.AllowEmpty));
 		
 		// parse non-commented tokens as commented tokens with or without a comment
 		Set<SymbolType> tokenTypes = Utils.set();
@@ -64,7 +65,7 @@ public class WyvernComments {
 		// the outer comment is /* ... */
 		productions.add(new Production(COMMENT, COMMENT_START, COMMENT_PART_LIST, COMMENT_END));
 		
-		productions.addAll(Production.makeList(COMMENT_PART_LIST, COMMENT_PART, null, Production.ListOptions.AllowEmpty));
+		productions.addAll(Production.makeList(COMMENT_PART_LIST, COMMENT_PART, null, Context.ListOption.AllowEmpty));
 		
 		// a comment part is either comment text or an inner comment, which has the same structure as the outer comment
 		productions.add(new Production(COMMENT_PART, COMMENT_TEXT));

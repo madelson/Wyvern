@@ -384,7 +384,7 @@ public class ParseTests {
 		map.put(leadingSeparator, false);
 		
 		// list with separator, can be empty, can have trailing
-		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowEmpty, Production.ListOptions.AllowTrailingSeparator);
+		productions = Production.makeList(list, el, sep, Context.ListOption.AllowEmpty, Context.ListOption.AllowTrailingSeparator);
 		map.put("", true);
 		map.put(separatedListNoTrailingSeparator, true);
 		map.put(separatedListTrailingSeparator, true);
@@ -392,7 +392,7 @@ public class ParseTests {
 		testParser(generator, list, productions, map, expected);
 		
 		// list with separator, can be empty, cannot have trailing
-		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowEmpty);
+		productions = Production.makeList(list, el, sep, Context.ListOption.AllowEmpty);
 		map.put("", true);
 		map.put(separatedListNoTrailingSeparator, true);
 		map.put(separatedListTrailingSeparator, false);
@@ -400,7 +400,7 @@ public class ParseTests {
 		testParser(generator, list, productions, map, expected);
 
 		// list with separator, cannot be empty, can have trailing
-		productions = Production.makeList(list, el, sep, Production.ListOptions.AllowTrailingSeparator);
+		productions = Production.makeList(list, el, sep, Context.ListOption.AllowTrailingSeparator);
 		map.put("", false);
 		map.put(separatedListNoTrailingSeparator, true);
 		map.put(separatedListTrailingSeparator, true);
@@ -416,7 +416,7 @@ public class ParseTests {
 		testParser(generator, list, productions, map, expected);
 		
 		// list with no separator, can be empty
-		productions = Production.makeList(list, el, null, Production.ListOptions.AllowEmpty);
+		productions = Production.makeList(list, el, null, Context.ListOption.AllowEmpty);
 		map.put("", true);
 		map.put(separatedListNoTrailingSeparator, false);
 		map.put(separatedListTrailingSeparator, false);

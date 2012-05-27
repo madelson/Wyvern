@@ -73,13 +73,13 @@ public class Regex {
 
 		productions.add(new Production(RANGE, CHAR, RANGE_OPERATOR, CHAR));
 
-		productions.addAll(Production.makeList(SET_LIST, SET, null, Production.ListOptions.AllowEmpty));
+		productions.addAll(Production.makeList(SET_LIST, SET, null, Context.ListOption.AllowEmpty));
 
 		productions.add(new Production(SET, RANGE));
 		productions.add(new Production(SET, ESCAPED));
 		productions.add(new Production(SET, CHAR));
 
-		productions.addAll(Production.makeList(REGEX_LIST, REGEX, null, Production.ListOptions.AllowEmpty));
+		productions.addAll(Production.makeList(REGEX_LIST, REGEX, null, Context.ListOption.AllowEmpty));
 
 		productions.add(new Production(REGEX, ESCAPED));
 		productions.add(new Production(REGEX, LPAREN, REGEX_LIST, RPAREN));

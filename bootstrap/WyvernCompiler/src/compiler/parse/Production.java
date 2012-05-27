@@ -6,6 +6,7 @@ package compiler.parse;
 import java.util.*;
 
 import compiler.*;
+import compiler.Context.ListOption;
 
 /**
  * Represents a CFG production
@@ -134,11 +135,6 @@ public class Production {
 		return types;
 	}
 	
-	public static enum ListOptions {
-		AllowTrailingSeparator,
-		AllowEmpty,
-	}
-	
 	public static List<Production> makeOption(SymbolType symbolType) {
 		List<Production> optionProductions = new ArrayList<Production>();
 		optionProductions.add(new Production(symbolType.context().optional(symbolType), symbolType));
@@ -150,14 +146,14 @@ public class Production {
 	/**
 	 * TODO: support automatically adding common error types for unexpected trailing/leading separator or non-empty
 	 */
-	public static List<Production> makeList(SymbolType listType, SymbolType elementType, SymbolType separatorType, ListOptions... listOptionsArray) {
+	public static List<Production> makeList(SymbolType listType, SymbolType elementType, SymbolType separatorType, ListOption... listOptionsArray) {
 		List<Production> listProductions = new ArrayList<Production>();		
-		List<ListOptions> listOptions = Arrays.asList(listOptionsArray);
+		List<ListOption> listOptions = Arrays.asList(listOptionsArray);
 
-		if (listOptions.contains(ListOptions.AllowTrailingSeparator)) {
+		if (listOptions.contains(ListOption.AllowTrailingSeparator)) {
 			Utils.check(separatorType != null);			
 			
-			if (listOptions.contains(ListOptions.AllowEmpty)) {
+			if (listOptions.contains(ListOption.AllowEmpty)) {
 				listProductions.add(new Production(listType, elementType, separatorType, listType));
 				listProductions.add(new Production(listType, elementType));
 				listProductions.add(new Production(listType));
@@ -168,7 +164,7 @@ public class Production {
 			}
 		} else {
 			if (separatorType != null) {
-				if (listOptions.contains(ListOptions.AllowEmpty)) {
+				if (listOptions.contains(ListOption.AllowEmpty)) {
 					// This is a tough case. You can't put any types before or after listType, since it may be empty and
 					// cannot have a trailing separator. Thus, we need to make use of another symbol
 					
@@ -185,7 +181,7 @@ public class Production {
 					listProductions.add(new Production(listType, elementType));										
 				}
 			} else {
-				if (listOptions.contains(ListOptions.AllowEmpty)) {
+				if (listOptions.contains(ListOption.AllowEmpty)) {
 					listProductions.add(new Production(listType, elementType, listType));
 					listProductions.add(new Production(listType));
 				} else {
