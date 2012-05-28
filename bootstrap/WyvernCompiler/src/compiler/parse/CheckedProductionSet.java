@@ -38,8 +38,13 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 				SymbolType listElementType = childType.context()
 						.getListElementType(childType);
 
+				// if it's a recursive definition, allow it but don't count the
+				// type as defined
+				if (childType.equals(production.symbolType())) {
+					isRecursiveDefinition = true;
+				}
 				// if it's an option we can just define it
-				if (optionComponentType != null) {
+				else if (optionComponentType != null) {
 					this.addAll(Production.makeOption(optionComponentType));
 				}
 				// if it's an OR we can just define it
@@ -64,11 +69,9 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 											.getListOptions(childType)
 											.toArray(new Context.ListOption[0])));
 				}
-				// if it's a recursive definition, allow it but don't count the
-				// type as defined
-				else if (childType.equals(production.symbolType())) {
-					isRecursiveDefinition = true;
-				} else {
+				// otherwise throw an error since we insist that types be
+				// defined in order
+				else {
 					Utils.err(String
 							.format("Tried to add production \"%s\" relying on \"%s\" but there is no existing production that produces that type!",
 									production, childType.name()));
@@ -84,6 +87,9 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 
 	@Override
 	public boolean addAll(Collection<? extends Production> productions) {
+		// TODO consider making this support mutually recursive definitions by
+		// adding all symbol types defined by the productions to the defined
+		// list BEFORE calling add
 		boolean changed = false;
 		for (Production production : productions) {
 			changed |= this.add(production);
