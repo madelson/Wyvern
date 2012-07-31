@@ -4,6 +4,7 @@
 package compiler.test;
 
 import static compiler.wyvern.WyvernLexer.*;
+import static compiler.wyvern.WyvernParser.*;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -14,13 +15,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import compiler.Context;
 import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Tuples;
 import compiler.Utils;
+import compiler.parse.Parser;
 import compiler.wyvern.WyvernComments;
-import compiler.wyvern.WyvernLexer;
+import compiler.wyvern.WyvernParser;
 
 /**
  * @author Michael
@@ -48,40 +49,57 @@ public class WyvernGrammarTests {
 		// lexical tests
 		testCases.addAll(Utils.set(TestCase.make("int", null, INT_ALIAS),
 				TestCase.make("obj 2 + 20.25 i280.2", null, OBJECT_ALIAS, INT,
-						PLUS, REAL, WyvernLexer.IDENTIFIER, WyvernLexer.REAL),
-				TestCase.make("'a''\\n'/*x/**/*/", null, WyvernLexer.CHAR,
-						WyvernLexer.CHAR, WyvernLexer.COMMENT_START,
-						WyvernLexer.COMMENT_TEXT, WyvernLexer.COMMENT_START,
-						WyvernLexer.COMMENT_END, WyvernLexer.COMMENT_END),
+						PLUS, REAL, IDENTIFIER, REAL),
+				TestCase.make("'a''\\n'/*x/**/*/", null, CHAR,
+						CHAR, COMMENT_START,
+						COMMENT_TEXT, COMMENT_START,
+						COMMENT_END, COMMENT_END),
 				TestCase.make("\n\n\t \" \\\"\"", null,
-						WyvernLexer.STRING_TERMINATOR, WyvernLexer.STRING_TEXT,
-						WyvernLexer.ESCAPE, WyvernLexer.STRING_TEXT,
-						WyvernLexer.STRING_TERMINATOR), TestCase.make(
-						"a.b.C, str", null, WyvernLexer.IDENTIFIER,
-						WyvernLexer.ACCESS, WyvernLexer.IDENTIFIER,
-						WyvernLexer.ACCESS, WyvernLexer.TYPE_NAME,
-						WyvernLexer.COMMA, WyvernLexer.STRING_ALIAS)));
+						STRING_TERMINATOR, STRING_TEXT,
+						ESCAPE, STRING_TEXT,
+						STRING_TERMINATOR), TestCase.make(
+						"a.b.C, str", null, IDENTIFIER,
+						ACCESS, IDENTIFIER,
+						ACCESS, TYPE_IDENTIFIER,
+						COMMA, STRING_ALIAS)));
 
 		TEST_CASES = Collections.unmodifiableList(testCases);
 	}
 
 	public static void lexerTests() {
-		Utils.check(WyvernLexer.LEXER != null, "lexer DNE");
+		Utils.check(LEXER != null, "lexer DNE");
 
 		for (TestCase testCase : TEST_CASES) {
 			if (testCase.item2() != null) {
-				List<Symbol> symbols = Utils.toList(WyvernLexer.LEXER
+				List<Symbol> symbols = Utils.toList(LEXER
 						.lex(new StringReader(testCase.item1())));
 				List<SymbolType> types = new ArrayList<SymbolType>(
 						symbols.size());
 				for (Symbol symbol : symbols) {
-					if (!symbol.type().equals(WyvernLexer.CONTEXT.eofType())) {
+					if (!symbol.type().equals(CONTEXT.eofType())) {
 						types.add(symbol.type());
 					}
 				}
 
 				Utils.check(types.equals(Arrays.asList(testCase.item2())),
 						types + " != " + Arrays.asList(testCase.item2()));
+			}
+		}
+	}
+	
+	public static void parserTests() {
+		Utils.check(PARSER != null, "parser DNE");
+		
+		for (TestCase testCase : TEST_CASES) {
+			if (testCase.item3() != null) {
+				List<Symbol> tokens = Utils.toList(LEXER
+						.lex(new StringReader(testCase.item1())));
+				Map<Symbol, Symbol> map = new HashMap<Symbol, Symbol>();
+				List<Symbol> withoutComments = WyvernComments.stripComments(tokens, map);
+				Parser.Result result = PARSER.parse(withoutComments.iterator());
+				
+				Utils.check(result.succeeded());
+				Utils.check(result.parseTree().type().equals(testCase.item3()));
 			}
 		}
 	}
@@ -94,7 +112,7 @@ public class WyvernGrammarTests {
 		prog = "/*text*/int a";
 		comments = new LinkedHashMap<Symbol, Symbol>();
 		tokens = WyvernComments.stripComments(
-				Utils.toList(WyvernLexer.LEXER.lex(new StringReader(prog))),
+				Utils.toList(LEXER.lex(new StringReader(prog))),
 				comments);
 		Utils.check(tokens.size() == 3);
 		Utils.check(tokens.get(0).type().equals(INT_ALIAS));
@@ -104,14 +122,13 @@ public class WyvernGrammarTests {
 		prog = "/**//*/*/text**/int a*/";
 		comments = new LinkedHashMap<Symbol, Symbol>();
 		tokens = WyvernComments.stripComments(
-				Utils.toList(WyvernLexer.LEXER.lex(new StringReader(prog))),
+				Utils.toList(LEXER.lex(new StringReader(prog))),
 				comments);
 		Utils.check(tokens.size() == 1);
 		Utils.check(tokens.get(0).type().equals(CONTEXT.eofType()));
 		Utils.check(comments.size() == 2);
 		Utils.check(comments.values().iterator().next() == null);
 		Utils.check(comments.keySet().iterator().next().text().equals("/**/"));
-
 	}
 
 	public static void main(String[] args) {
@@ -119,6 +136,8 @@ public class WyvernGrammarTests {
 
 		commentTests();
 
+		parserTests();
+		
 		System.out.println("All wyvern grammar tests passed!");
 	}
 }

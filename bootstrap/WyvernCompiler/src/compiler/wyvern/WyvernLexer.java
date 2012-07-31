@@ -43,24 +43,28 @@ public class WyvernLexer {
 			MINUS = CONTEXT.getTerminalSymbolType("-"),
 			TIMES = CONTEXT.getTerminalSymbolType("*"),
 			DIVIDED_BY = CONTEXT.getTerminalSymbolType("/"),
+			QUESTION_MARK = CONTEXT.getTerminalSymbolType("?"),
 			AND = CONTEXT.getTerminalSymbolType("and"),
 			OR = CONTEXT.getTerminalSymbolType("or"),
 			IF = CONTEXT.getTerminalSymbolType("if"),
 			ELSE = CONTEXT.getTerminalSymbolType("else"),
 			USING = CONTEXT.getTerminalSymbolType("using"),
 			TYPE = CONTEXT.getTerminalSymbolType("type"),
+			IS = CONTEXT.getTerminalSymbolType("is"),
+			WHERE = CONTEXT.getTerminalSymbolType("where"),
 			PRIVATE = CONTEXT.getTerminalSymbolType("private"),
 			FAMILY = CONTEXT.getTerminalSymbolType("family"),
+			DEFAULT = CONTEXT.getTerminalSymbolType("default"),
 			ACCESS = CONTEXT.getTerminalSymbolType("."),
 			COMMA = CONTEXT.getTerminalSymbolType(","),
 			COLON = CONTEXT.getTerminalSymbolType(":"),
 			STRING_TERMINATOR = CONTEXT.getTerminalSymbolType("\""),
-			STRING_TEXT = CONTEXT.getTerminalSymbolType("string text"),
+			STRING_TEXT = CONTEXT.getTerminalSymbolType("string-text"),
 			ESCAPE = CONTEXT.getTerminalSymbolType("\\"),
-			COMMENT_START = CONTEXT.getTerminalSymbolType("comment start"),
-			COMMENT_END = CONTEXT.getTerminalSymbolType("comment end"),
-			COMMENT_TEXT = CONTEXT.getTerminalSymbolType("comment text"),
-			TYPE_NAME = CONTEXT.getTerminalSymbolType("type name"),
+			COMMENT_START = CONTEXT.getTerminalSymbolType("comment-start"),
+			COMMENT_END = CONTEXT.getTerminalSymbolType("comment-end"),
+			COMMENT_TEXT = CONTEXT.getTerminalSymbolType("comment-text"),
+			TYPE_IDENTIFIER = CONTEXT.getTerminalSymbolType("type-identifier"),
 			IDENTIFIER = CONTEXT.getTerminalSymbolType("identifier"),
 			INT = CONTEXT.getTerminalSymbolType("int"),
 			REAL = CONTEXT.getTerminalSymbolType("real"),
@@ -112,8 +116,8 @@ public class WyvernLexer {
 	private static LinkedHashSet<LexerAction> getSimpleSymbolTypeActions() {
 		SymbolType[] simpleTypes = new SymbolType[] {
 			LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LCARET, RCARET,
-			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STMT_END, ACCESS, COMMA, COLON,
-			IF, ELSE, TYPE, PRIVATE, FAMILY, TRUE, FALSE, USING, PACKAGE,
+			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STMT_END, ACCESS, COMMA, COLON, QUESTION_MARK,
+			IF, ELSE, TYPE, PRIVATE, FAMILY, DEFAULT, TRUE, FALSE, USING, PACKAGE, IS, WHERE,
 			OBJECT_ALIAS, STRING_ALIAS, INT_ALIAS, BOOLEAN_ALIAS, CHAR_ALIAS, SEQUENCE_ALIAS
 		};
 		
@@ -129,7 +133,7 @@ public class WyvernLexer {
 		return Utils.set(
 			LexerAction.lexToken("[\\+\\-]?[0-9]*\\.[0-9]+", REAL),
 			LexerAction.lexToken("[a-z][a-zA-Z0-9]*", IDENTIFIER),
-			LexerAction.lexToken("[A-Z][a-zA-z0-9]*", TYPE_NAME),
+			LexerAction.lexToken("[A-Z][a-zA-z0-9]*", TYPE_IDENTIFIER),
 			LexerAction.lexToken("[\\+\\-]?[0-9]+", INT),
 			LexerAction.lexToken("'\\\\?.'", CHAR)
 		);
