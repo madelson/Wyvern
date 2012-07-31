@@ -250,6 +250,8 @@ Tasks to simplify:
 	- convert records to collections (e. g. dictionaries)
 	- maybe records are just a special case of collections!?
 	- these plus LINQy functional collection manipulation should make for very powerful and concise data handling
+	- default values. Nullable types T? are default null, primitive types have normal default values, types with a DefaultValue static property have that as their default value,
+		and types lacking that but with a parameter-less constructor use that as their default value.
 	
 -------------------------------
 
@@ -280,7 +282,7 @@ property declaration:
 attributes [propertyType] name [= exp|{
 	[getter]
 	[setters]
-	[default: exp]
+	[default exp|code block]
 }]
 
 example:
@@ -307,6 +309,81 @@ type Date {
 	}
 }
 
+type Document {
+	final int id;
+	final str name;
+	final Date dateDeleted;
+	
+	// .* allows assignment of other final properties through the constructor
+	Document(int .id, .*); 
+}
+
 usage:
 d = Date(1000);
 d = Date.fromYear(2012);
+
+Use case analysis:
+I want an immutable type, but I want many properties to be configurable through the initializer:
+
+Options: 
+Java/C# force you to list all props in the constructor
+Limitations: clunky
+Fantom-style "init block" (internally must use additional bool "locked" field and getter/setter implementation)
+// wyvern code
+final type Document { // final here makes all props final
+	int id { get; private set; };
+	// init here marks set in init block
+	init str text;
+	
+	new(.id);
+}
+
+// usage
+doc = Document(100) {
+	.text = "a-" + .id;	
+}
+Benefits: ability to initialize based on partial results (.name = "fred"; .text = .name.substring(0, 1);)
+Limitations: can't make a variable init for some constructors and final for others, but hopefully most things using this feature won't need that,
+"." scope could be confusing (outer scope referenced with this.? With OuterClass.this.?
+Not very amenable to reflection (but non-default constructors aren't amenable to it generally)
+Questions: should we expose "this"? Should the init block be passable via reflection?
+
+.* additional parameter assignment
+new(.id, .*);
+
+// usage
+doc = Document(100, text: "a");
+
+Benefits: syntax developed here could be re-used for .* copy assignment = a.* = b.* or a.[* except id] = b.[* except id]. On the other
+hand we might just want something like: extend IModel to get copyTo(This that, ICollection<Property> whiteList=null, ICollection<Property> blackList=null, Func<Property, bool> copyCondition=null)
+so you can just do a.copyTo(b, blackList: [ModelType#id]); That would be more flexible.
+
+Auto-generated code: there's a different between adding members and filling in/populating members. And example of adding members is delegation. 
+
+case statements:
+case [exp] {
+	when [exp]:
+	...
+	break/return/continue (fallthrough)
+	when 
+}
+
+SimpleWyvern:
+-has classes (concrete) and abstract classes
+-has functions with lambda lifting (read only?)
+-has generics
+-has single-line comments (//)
+-has primitive types (but no aliases) & literals
+-has attributes
+-has reflection
+-has primitive operations (IO, etc)
+-has limited operator set: =, and, or, =>, ., try, catch, finally, while (no for!), break, continue, case (no if!), is
+-has an Ops class with common methods like add, subtract, divide, multiply, comparisons, equals, not, bitwise ops
+-has some ability to invoke platform code
+-NO: type inference, implicit variables, import statements (everything must be in wyvern or declared exactly)
+
+Wyvern will be a superset of SimpleWyvern, adding:
+	- lexer rules
+	- parser rules
+	- desugaring rules (some constructs translate directly to SimpleWyvern constructs)
+	- plugins which require access while type checking 
