@@ -152,6 +152,14 @@ public class AutomataTests {
 			Utils.check(originalChars.equals(resultChars),
 					"Unions are not equal!");
 		}
+		
+		// test min and max
+		Utils.check(ops.min(Utils.set('b', 'a', 'c')) == 'a');
+		Utils.check(ops.max(Utils.set('a', 'c', 'b')) == 'c');
+		if (tryLargeRange) {
+			Utils.check(ops.min(Characters.range((char)(Character.MIN_VALUE + 1), Character.MAX_VALUE)) == Character.MIN_VALUE + 1);
+			Utils.check(ops.max(Characters.range('a', (Character.MAX_VALUE))) == Character.MAX_VALUE);
+		}
 	}
 
 	public static void dfaConversionTest() {
