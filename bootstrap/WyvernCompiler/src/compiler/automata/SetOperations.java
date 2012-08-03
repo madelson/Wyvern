@@ -19,4 +19,7 @@ public interface SetOperations<T> {
 	 * returned set.
 	 */
 	public Set<Collection<T>> partitionedUnion(Collection<Collection<T>> sets);
+	
+	public T min(Collection<T> collection);	
+	public T max(Collection<T> collection);
 }

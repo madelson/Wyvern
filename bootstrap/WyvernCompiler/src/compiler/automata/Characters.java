@@ -25,7 +25,8 @@ import compiler.Utils;
  */
 public class Characters {
 	private static final SetOperations<Character> setOperations = new SetOperations<Character>() {
-
+		private final SetOperations<Character> simpleSetOperations = new SimpleSetOperations<Character>();
+		
 		@Override
 		public Set<Collection<Character>> partitionedUnion(
 				Collection<Collection<Character>> sets) {
@@ -132,6 +133,22 @@ public class Characters {
 			}
 
 			return result;
+		}
+
+		@Override
+		public Character min(Collection<Character> collection) {
+			if (collection instanceof Range) {
+				return ((Range)collection).min();
+			}
+			return this.simpleSetOperations.min(collection);
+		}
+
+		@Override
+		public Character max(Collection<Character> collection) {
+			if (collection instanceof Range) {
+				return ((Range)collection).max();
+			}
+			return this.simpleSetOperations.max(collection);
 		}
 	};
 
