@@ -168,6 +168,9 @@ public class LexTests {
 		auto = createSimpleNfa("[a-z]");
 		checkNfa(auto, 4, 3, 2);
 
+		auto = createSimpleNfa("[^a]");
+		checkNfa(auto, 4, 4, 2);
+		
 		// should create an nfa with an unreachable state
 		auto = createSimpleNfa("[]");
 		checkNfa(auto, 4, 2, 2);
@@ -181,11 +184,13 @@ public class LexTests {
 				"abc",
 				"a*b",
 				"*?[]ab()\\n\n",
+				"^^"
 		},
 		outputs = new String[] {
 				"abc",
 				"a\\*b",
-				"\\*\\?\\[\\]ab\\(\\)\\\\n\n"
+				"\\*\\?\\[\\]ab\\(\\)\\\\n\n",
+				"\\^\\^"
 		};
 		for (int i = 0; i < inputs.length; i++) {
 			String escaped = Regex.escape(inputs[i]);
@@ -240,7 +245,8 @@ public class LexTests {
 				.getTerminalSymbolType("ID"), num = c
 				.getTerminalSymbolType("INT"), real = c
 				.getTerminalSymbolType("REAL"), commentText = c
-				.getTerminalSymbolType("COMMENT"), ur = c.unrecognizedType(), eof = c
+				.getTerminalSymbolType("COMMENT"), constant = c
+				.getTerminalSymbolType("CONSTANT"), ur = c.unrecognizedType(), eof = c
 				.eofType();
 		String commentState = "COMMENT_STATE";
 
@@ -252,6 +258,7 @@ public class LexTests {
 		actions.add(LexerAction.lexToken("[0-9]+", num));
 		actions.add(LexerAction.lexToken("([0-9]+\\.[0-9]*)|([0-9]*\\.[0-9]+)",
 				real));
+		actions.add(LexerAction.lexToken("[A-Z][^a-z]*[A-Z]", constant));
 
 		// skip whitespace
 		actions.add(LexerAction.skip(LexerAction.DEFAULT_SET, "[ \r\n\t]"));
@@ -280,10 +287,15 @@ public class LexTests {
 				real, id, iff, num, num, eof });
 		checkLexer(lexer, "1/*2/*//*/**/*/**/if*/if", new SymbolType[] { num,
 				commentText, commentText, commentText, commentText, iff, eof });
+		checkLexer(lexer, "AA", constant, eof);
+		checkLexer(lexer, "AAaAA", constant, id, constant, eof);
+		checkLexer(lexer, "ZZ!@#$H", constant, eof);
+		checkLexer(lexer, "ZZ/*THIS IS NOT ACTUALLY A COMMENT*/HH", constant, eof);
+		checkLexer(lexer, "MMMM/*bUT THIS IS A COMMENT SINCE IT STARTED WITH A LOWER CASE LETTER*/H!H", constant, commentText, constant, eof);
 	}
 
 	private static void checkLexer(Lexer lexer, String input,
-			SymbolType[] outputTypes) {
+			SymbolType... outputTypes) {
 		// simple test
 		lexerLineNumberAndPositionTest(lexer, input,
 				outputTypes[outputTypes.length - 1]);

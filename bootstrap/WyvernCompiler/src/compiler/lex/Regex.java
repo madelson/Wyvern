@@ -4,12 +4,15 @@
 package compiler.lex;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +22,7 @@ import compiler.SymbolType;
 import compiler.Utils;
 import compiler.automata.Characters;
 import compiler.automata.FiniteAutomaton;
+import compiler.automata.SetOperations;
 import compiler.automata.State;
 import compiler.canonicalize.Canonicalize;
 import compiler.parse.Associativity;
@@ -44,7 +48,8 @@ public class Regex {
 			.getTerminalSymbolType(")"), ZERO_OR_ONE = context
 			.getTerminalSymbolType("?"), ONE_PLUS = context
 			.getTerminalSymbolType("+"), RANGE_OPERATOR = context
-			.getTerminalSymbolType("-"), LBRACKET = context
+			.getTerminalSymbolType("-"), SET_INVERSE_OPERATOR = context
+			.getTerminalSymbolType("^"), LBRACKET = context
 			.getTerminalSymbolType("["), RBRACKET = context
 			.getTerminalSymbolType("]"), WILDCARD = context
 			.getTerminalSymbolType("."), CHAR = context
@@ -66,7 +71,7 @@ public class Regex {
 		LinkedHashSet<Production> productions = new LinkedHashSet<Production>();
 
 		for (SymbolType terminalType : Utils.set(KLEENE_CLOSURE, OR, ESCAPE,
-				LPAREN, RPAREN, ZERO_OR_ONE, ONE_PLUS, RANGE_OPERATOR,
+				LPAREN, RPAREN, ZERO_OR_ONE, ONE_PLUS, RANGE_OPERATOR, SET_INVERSE_OPERATOR,
 				LBRACKET, RBRACKET, WILDCARD, CHAR)) {
 			productions.add(new Production(ESCAPED, ESCAPE, terminalType));
 		}
@@ -88,6 +93,7 @@ public class Regex {
 		productions.add(new Production(REGEX, REGEX, ZERO_OR_ONE));
 		productions.add(new Production(REGEX, REGEX, ONE_PLUS));
 		productions.add(new Production(REGEX, LBRACKET, SET_LIST, RBRACKET));
+		productions.add(new Production(REGEX, LBRACKET, SET_INVERSE_OPERATOR, SET_LIST, RBRACKET));
 		productions.add(new Production(REGEX, WILDCARD));
 		productions.add(new Production(REGEX, CHAR));
 
@@ -295,11 +301,83 @@ public class Regex {
 					return headState;
 				}
 				throw Utils.err("Should never get here!");
+			case 4:
+				type = regexSymbol.children().get(2).type();
+				if (type.equals(SET_LIST)) {
+					Utils.check(regexSymbol.children().get(1).type().equals(SET_INVERSE_OPERATOR));
+					// an inverted set is just a set with the contents inverted
+					return buildNfa(REGEX.createSymbol(regexSymbol.children().get(0), invertSetList(regexSymbol.children().get(2)), regexSymbol.children().get(3)), startState, builder);
+				}
+				throw Utils.err("Should never get here!");
 			default:
 				throw Utils.err("Should never get here!");
 			}
 		}
 		throw Utils.err("Should never get here!");
+	}
+
+	private static Symbol invertSetList(Symbol symbol) {
+		Utils.check(symbol.type().equals(SET_LIST));
+		
+		// if the list is empty, this is equivalent to a single range from MIN_CHAR to MAX_CHAR
+		// because the inverse of the empty set is the universe
+		if (symbol.children().isEmpty()) {
+			return SET_LIST.createSymbol(makeRange(Character.MIN_VALUE, Character.MAX_VALUE));
+		}
+		
+		// (1) collect all characters and ranges
+		List<Collection<Character>> charSets = new ArrayList<Collection<Character>>();
+		for (Symbol child : symbol.children().get(0).children()) { // go two levels deep because child is a SET
+			if (child.type().equals(RANGE)) {
+				charSets.add(Characters.range(getChar(child.children().get(0)), getChar(child.children().get(2))));
+			} else {
+				charSets.add(Collections.singleton(getChar(child)));
+			}
+		}
+		
+		// (2) create non-overlapping ranges (we know they're ranges or singletons due to the nature of the possible sets
+		// we passed in)
+		final SetOperations<Character> setOps = Characters.setOperations();
+		Set<Collection<Character>> nonOverlappingRanges = setOps.partitionedUnion(charSets);
+		
+		// (3) sort the ranges
+		List<Collection<Character>> sortedRanges = new ArrayList<Collection<Character>>(nonOverlappingRanges);
+		Collections.sort(sortedRanges, new Comparator<Collection<Character>>() {
+			@Override
+			public int compare(Collection<Character> a,
+					Collection<Character> b) {
+				char minA = setOps.min(a),
+					minB = setOps.min(b);
+				return minA < minB ? -1 : (minA > minB ? 1 : 0);
+			}			
+		});
+		
+		// (4) the inverse set is composed of the gaps between the ranges and at the ends
+		List<Symbol> gaps = new ArrayList<Symbol>(sortedRanges.size() + 1);
+		char min = setOps.min(sortedRanges.get(0)), 
+			max = setOps.max(Utils.last(sortedRanges));
+		if (Character.MIN_VALUE < min) {
+			gaps.add(makeRange(Character.MIN_VALUE, (char)(min - 1)));
+		}
+		for (int i = 0; i < gaps.size() - 1; i++) {
+			// note that we don't have to check max(i) < min(i + 1) here because we know the ranges don't overlap :)
+			gaps.add(makeRange((char)(setOps.max(sortedRanges.get(i)) + 1), (char)(setOps.min(sortedRanges.get(i + 1)) - 1)));
+		}
+		if (Character.MAX_VALUE > max) {
+			gaps.add(makeRange((char)(max + 1), Character.MAX_VALUE));
+		}
+		
+		return SET_LIST.createSymbol(gaps);
+	}
+	
+	private static Symbol makeRange(char min, char max) {
+		if (min == max) {
+			return SET.createSymbol(CHAR.createSymbol(String.valueOf(min), 1, 1));
+		}
+		
+		Symbol start = CHAR.createSymbol(String.valueOf(min), 1, 1),
+			end = CHAR.createSymbol(String.valueOf(max), 1, 1);
+		return SET.createSymbol(RANGE.createSymbol(start, RANGE_OPERATOR.createSymbol("FAKE", 1, 1), end));
 	}
 
 	private static char getChar(Symbol singleCharSymbol) {
@@ -324,7 +402,7 @@ public class Regex {
 		}
 
 		// sanity check, until we support more complex character types
-		Utils.check(singleCharSymbol.text().length() == 1);
+		Utils.check(singleCharSymbol.text().length() == 1, singleCharSymbol.text());
 
 		return singleCharSymbol.text().charAt(0);
 	}
