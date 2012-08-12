@@ -170,7 +170,7 @@ public class LexTests {
 
 		auto = createSimpleNfa("[^a]");
 		checkNfa(auto, 4, 4, 2);
-		
+
 		// should create an nfa with an unreachable state
 		auto = createSimpleNfa("[]");
 		checkNfa(auto, 4, 2, 2);
@@ -180,24 +180,15 @@ public class LexTests {
 	}
 
 	public static void regexEscapeTest() {
-		String[] inputs = new String[] {
-				"abc",
-				"a*b",
-				"*?[]ab()\\n\n",
-				"^^"
-		},
-		outputs = new String[] {
-				"abc",
-				"a\\*b",
-				"\\*\\?\\[\\]ab\\(\\)\\\\n\n",
-				"\\^\\^"
-		};
+		String[] inputs = new String[] { "abc", "a*b", "*?[]ab()\\n\n", "^^" }, outputs = new String[] {
+				"abc", "a\\*b", "\\*\\?\\[\\]ab\\(\\)\\\\n\n", "\\^\\^" };
 		for (int i = 0; i < inputs.length; i++) {
 			String escaped = Regex.escape(inputs[i]);
-			Utils.check(outputs[i].equals(escaped), escaped + " != " + outputs[i]);
+			Utils.check(outputs[i].equals(escaped), escaped + " != "
+					+ outputs[i]);
 		}
 	}
-	
+
 	private static FiniteAutomaton<SymbolType, Character> createSimpleNfa(
 			String regex) {
 		Symbol parseTree = Regex.canonicalize(Regex.parse(regex).parseTree());
@@ -244,7 +235,8 @@ public class LexTests {
 		SymbolType iff = c.getTerminalSymbolType("IF"), id = c
 				.getTerminalSymbolType("ID"), num = c
 				.getTerminalSymbolType("INT"), real = c
-				.getTerminalSymbolType("REAL"), commentText = c
+				.getTerminalSymbolType("REAL"), mangled = c.getTerminalSymbolType("MANGLED"),
+				commentText = c
 				.getTerminalSymbolType("COMMENT"), constant = c
 				.getTerminalSymbolType("CONSTANT"), ur = c.unrecognizedType(), eof = c
 				.eofType();
@@ -259,6 +251,7 @@ public class LexTests {
 		actions.add(LexerAction.lexToken("([0-9]+\\.[0-9]*)|([0-9]*\\.[0-9]+)",
 				real));
 		actions.add(LexerAction.lexToken("[A-Z][^a-z]*[A-Z]", constant));
+		actions.add(LexerAction.lexToken("__[^\\\\\"]__", mangled));
 
 		// skip whitespace
 		actions.add(LexerAction.skip(LexerAction.DEFAULT_SET, "[ \r\n\t]"));
@@ -292,6 +285,8 @@ public class LexTests {
 		checkLexer(lexer, "ZZ!@#$H", constant, eof);
 		checkLexer(lexer, "ZZ/*THIS IS NOT ACTUALLY A COMMENT*/HH", constant, eof);
 		checkLexer(lexer, "MMMM/*bUT THIS IS A COMMENT SINCE IT STARTED WITH A LOWER CASE LETTER*/H!H", constant, commentText, constant, eof);
+		checkLexer(lexer, "__a__", mangled, eof);
+		checkLexer(lexer, "__\\__", ur, ur, ur, ur, ur, eof);
 	}
 
 	private static void checkLexer(Lexer lexer, String input,
@@ -371,7 +366,7 @@ public class LexTests {
 		basicRegexTest();
 
 		regexNfaTest();
-		
+
 		regexEscapeTest();
 
 		regexLexerGeneratorTest();

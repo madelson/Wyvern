@@ -96,7 +96,7 @@ public class RegexLexerGenerator extends AbstractLexerGenerator {
 				final Deque<Simulator<LexerAction, Character>> simulatorStack = new ArrayDeque<Simulator<LexerAction, Character>>();
 				simulatorStack.push(new DfaSimulator<LexerAction, Character>(
 						automata.get(DEFAULT_STATE)));
-
+				
 				return new Iterator<Symbol>() {
 					private LexerAction lastMatchEndAction = null;
 					private int lastMatchOffset;
@@ -115,7 +115,7 @@ public class RegexLexerGenerator extends AbstractLexerGenerator {
 						do {
 							// read the next character
 							int c = markableReader.uncheckedRead();
-
+							
 							// if there are no more chars to send, send eof
 							if (c == -1) {
 								if (!this.hasNext()) {
@@ -127,12 +127,20 @@ public class RegexLexerGenerator extends AbstractLexerGenerator {
 								if (this.lastMatchEndAction != null) {
 									token = this.performMatch();
 								}
+								// if we have no match but we've read characters since the last
+								// mark, then we must have started accepting a symbol and then encountered EOF
+								// e. g. we saw f, o, EOF and started matching "for". In that case, the trailing characters
+								// need to be sent as unrecognized symbols. Note that we know it's always safe to check
+								// the mark offset here because we always call mark() at the beginning or after any match
+								else if (markableReader.offsetFromMark() > 0) {
+									token = this.performMatch();
+								}
 								// send EOF since we're really done
 								else {
 									token = context.eofType().createSymbol("",
 											markableReader.lineNumber(),
 											markableReader.position());
-									this.sentEOF = true;
+									this.sentEOF = true; // causes hasNext() to return false
 									try {
 										markableReader.close();
 									} catch (IOException ex) {
