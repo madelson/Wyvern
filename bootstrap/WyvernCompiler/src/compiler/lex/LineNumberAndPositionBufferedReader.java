@@ -151,10 +151,10 @@ public class LineNumberAndPositionBufferedReader extends Reader {
 	}
 
 	/**
-	 * The number of characters read since the last call to mark().
+	 * The number of characters read since the last call to mark() or reset().
 	 */
 	public int offsetFromMark() {
-		Utils.check(this.markSet, "Cannot reset without first setting a mark!");
+		Utils.check(this.markSet, "Cannot check mark offset without first setting a mark!");
 
 		return this.nextReadBufferIndex;
 	}
