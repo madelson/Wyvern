@@ -3,7 +3,7 @@
  */
 package compiler.test;
 
-import static compiler.simpleWyvern.SimpleWyvernLexer.*;
+import static compiler.simplewyvern.SimpleWyvernLexer.*;
 
 import java.io.StringReader;
 import java.util.Arrays;
@@ -39,6 +39,7 @@ public class SimpleWyvernLexerTests {
 		test("'a'", CHAR_LITERAL);
 		test("\"a\"", STRING_TERMINATOR, STRING_TEXT, STRING_TERMINATOR);
 		test("String.format(\"%sabc\\\"\", -10.07)", TYPE_IDENTIFIER, ACCESS, IDENTIFIER, LPAREN, STRING_TERMINATOR, STRING_TEXT, ESCAPED_CHAR, STRING_TERMINATOR, COMMA, REAL_LITERAL, RPAREN);
+		test("abc // hey this is cool\r\n=>", IDENTIFIER, SINGLE_LINE_COMMENT, LAMBDA_OPERATOR);
 		
 		System.out.println("All simple wyvern lexer tests passed!");
 	}
