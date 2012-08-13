@@ -327,7 +327,8 @@ public class Regex {
 		
 		// (1) collect all characters and ranges
 		List<Collection<Character>> charSets = new ArrayList<Collection<Character>>();
-		for (Symbol child : symbol.children().get(0).children()) { // go two levels deep because child is a SET
+		for (Symbol setChild : symbol.children()) {
+			Symbol child = setChild.children().get(0); // go two levels deep because child is a SET
 			if (child.type().equals(RANGE)) {
 				charSets.add(Characters.range(getChar(child.children().get(0)), getChar(child.children().get(2))));
 			} else {
@@ -359,7 +360,7 @@ public class Regex {
 		if (Character.MIN_VALUE < min) {
 			gaps.add(makeRange(Character.MIN_VALUE, (char)(min - 1)));
 		}
-		for (int i = 0; i < gaps.size() - 1; i++) {
+		for (int i = 0; i < sortedRanges.size() - 1; i++) {
 			// note that we don't have to check max(i) < min(i + 1) here because we know the ranges don't overlap :)
 			gaps.add(makeRange((char)(setOps.max(sortedRanges.get(i)) + 1), (char)(setOps.min(sortedRanges.get(i + 1)) - 1)));
 		}

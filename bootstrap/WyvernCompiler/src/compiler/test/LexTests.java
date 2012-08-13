@@ -170,6 +170,9 @@ public class LexTests {
 
 		auto = createSimpleNfa("[^a]");
 		checkNfa(auto, 4, 4, 2);
+		
+		auto = createSimpleNfa("[^a\\?]");
+		checkNfa(auto, 4, 5, 2);
 
 		// should create an nfa with an unreachable state
 		auto = createSimpleNfa("[]");
@@ -208,9 +211,9 @@ public class LexTests {
 		Set<Edge<SymbolType, Character>> edgeCollection = automaton.edges();
 
 		Utils.check(stateCollection.size() == expectedStateCount,
-				"Bad state count!");
+				String.format("Bad state count! (expected: %s, found %s)", expectedStateCount, stateCollection.size()));
 		Utils.check(edgeCollection.size() == expectedEdgeCount,
-				"Bad edge count!");
+				String.format("Bad edge count! (expected: %s, found %s)", expectedEdgeCount, edgeCollection.size()));
 
 		int epsilonEdgeCount = 0;
 		for (Edge<SymbolType, Character> edge : edgeCollection) {
