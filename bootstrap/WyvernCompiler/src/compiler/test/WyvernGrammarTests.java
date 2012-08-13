@@ -21,7 +21,6 @@ import compiler.Tuples;
 import compiler.Utils;
 import compiler.parse.Parser;
 import compiler.wyvern.WyvernComments;
-import compiler.wyvern.WyvernParser;
 
 /**
  * @author Michael
