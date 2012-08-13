@@ -1,7 +1,7 @@
 /**
  * 
  */
-package compiler.simpleWyvern;
+package compiler.simplewyvern;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
