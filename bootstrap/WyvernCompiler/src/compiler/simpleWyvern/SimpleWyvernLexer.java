@@ -22,7 +22,7 @@ import compiler.lex.RegexLexerGenerator;
 public class SimpleWyvernLexer {
 	public static final Context CONTEXT = new Context();
 	public static final Lexer LEXER;
-	public static final String IN_STRING = "IN_STRING", IN_STRING_ESCAPE = "IN_STRING_ESCAPE";
+	public static final String IN_STRING = "IN_STRING";
 
 	/**
 	 * The terminal symbol types for the SimpleWyvern language
@@ -59,7 +59,7 @@ public class SimpleWyvernLexer {
 			CHAR_LITERAL = CONTEXT.getTerminalSymbolType("char-literal"),
 			STRING_TERMINATOR = CONTEXT.getTerminalSymbolType("\""),
 			STRING_TEXT = CONTEXT.getTerminalSymbolType("string-text"),
-			ESCAPE = CONTEXT.getTerminalSymbolType("\\"),
+			ESCAPED_CHAR = CONTEXT.getTerminalSymbolType("escaped-char"),
 			TYPE_IDENTIFIER = CONTEXT.getTerminalSymbolType("type-identifier"),
 			IDENTIFIER = CONTEXT.getTerminalSymbolType("identifier"),
 			STMT_END = CONTEXT.getTerminalSymbolType(";"),
@@ -81,17 +81,16 @@ public class SimpleWyvernLexer {
 	
 	private static LinkedHashSet<LexerAction> getCommentActions() {
 		return Utils.set(
-			LexerAction.lexToken("//.*\n", SINGLE_LINE_COMMENT)
+			LexerAction.lexToken("//[^\n]*\n", SINGLE_LINE_COMMENT)
 		);
 	}
 	
 	private static LinkedHashSet<LexerAction> getStringActions() {
 		return Utils.set(
 			LexerAction.enter(LexerAction.DEFAULT_SET, STRING_TERMINATOR.name(), STRING_TERMINATOR, IN_STRING),
-			LexerAction.enter(Collections.singleton(IN_STRING), "\\\\", ESCAPE, IN_STRING_ESCAPE),
-			LexerAction.leave(Collections.singleton(IN_STRING_ESCAPE), ".", STRING_TEXT),
+			LexerAction.lexToken(Collections.singleton(IN_STRING), "\\\\.", ESCAPED_CHAR),
 			LexerAction.leave(Collections.singleton(IN_STRING), STRING_TERMINATOR.name(), STRING_TERMINATOR),
-			LexerAction.lexToken(Collections.singleton(IN_STRING), "([a-zA-Z0-9\n\\+\\-\\*/\\. ]+)|.", STRING_TEXT)
+			LexerAction.lexToken(Collections.singleton(IN_STRING), "[^\\\\\"]+", STRING_TEXT)
 		);
 	}
 	
