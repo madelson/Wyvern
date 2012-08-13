@@ -3,10 +3,14 @@
  */
 package compiler.simplewyvern;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import compiler.Context;
+import compiler.Symbol;
 import compiler.SymbolType;
 import compiler.Utils;
 import compiler.lex.Lexer;
@@ -77,6 +81,19 @@ public class SimpleWyvernLexer {
 		LexerGenerator gen = new RegexLexerGenerator();
 		LexerGenerator.Result result = gen.generate(CONTEXT, actions);
 		LEXER = result.lexer();
+	}
+	
+	public static List<Symbol> stripComments(final Iterator<Symbol> symbols) {
+		List<Symbol> nonCommentSymbols = new ArrayList<Symbol>();
+		
+		while (symbols.hasNext()) {
+			Symbol symbol = symbols.next();
+			if (!symbol.type().equals(SINGLE_LINE_COMMENT)) {
+				nonCommentSymbols.add(symbol);
+			}
+		}
+		
+		return nonCommentSymbols;
 	}
 	
 	private static LinkedHashSet<LexerAction> getCommentActions() {
