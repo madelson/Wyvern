@@ -109,7 +109,7 @@ public class WyvernParser {
 
 		/* MEMBER DECLARATIONS */
 		// properties: [attributes] [Type] Name ;|{ [vars ...] [getter] [setter] } [= exp]
-		productions.add(new Production)
+		//productions.add(new Production)
 		
 		// type declaration: [attributes] type Name [is BaseTypes] [where ...] {
 		// members }
