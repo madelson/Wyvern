@@ -135,8 +135,12 @@ public class RegexLexerGenerator extends AbstractLexerGenerator {
 								else if (markableReader.offsetFromMark() > 0) {
 									token = this.performMatch();
 								}
-								// send EOF since we're really done
-								else {
+								
+								// if we couldn't get a token through the above cases, send EOF.
+								// note that this can't just be "else if" since if one of the performMatch()
+								// calls above matches a skip action the returned token will still be null
+								if (token == null) {
+									// send EOF since we're really done
 									token = context.eofType().createSymbol("",
 											markableReader.lineNumber(),
 											markableReader.position());

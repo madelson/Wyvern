@@ -290,6 +290,11 @@ public class LexTests {
 		checkLexer(lexer, "MMMM/*bUT THIS IS A COMMENT SINCE IT STARTED WITH A LOWER CASE LETTER*/H!H", constant, commentText, constant, eof);
 		checkLexer(lexer, "__a__", mangled, eof);
 		checkLexer(lexer, "__\\__", ur, ur, ur, ur, ur, eof);
+		// MA 4/30/13: these 2 tests make sure that skip works properly when a skipped match is at the end of the string
+		checkLexer(lexer, " \t", eof);
+		checkLexer(lexer, "\r2\n", num, eof);
+		checkLexer(lexer, "/**/", eof);
+		checkLexer(lexer, "/**/if/**/", iff, eof);
 	}
 
 	private static void checkLexer(Lexer lexer, String input,
