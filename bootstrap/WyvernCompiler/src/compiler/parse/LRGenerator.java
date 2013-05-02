@@ -14,7 +14,9 @@ import compiler.*;
 public abstract class LRGenerator implements ParserGenerator {
 
 	/**
-	 * Computes the closure of a set of items, creating a state
+	 * Computes the closure of a set of items, creating a state.
+	 * TODO: for performance we could have this return an ImmutableSet<T> so that
+	 * State wouldn't have to create a copy
 	 */
 	protected abstract Set<Item> closure(Grammar grammar, Set<Item> items);
 
@@ -341,38 +343,62 @@ public abstract class LRGenerator implements ParserGenerator {
 		startItems = this.closure(grammar, startItems);
 		State startState = new State("1", startItems);
 
-		// maps unique item sets to labeled states
-		Map<Set<Item>, State> itemsToStates = new LinkedHashMap<Set<Item>, State>();
+		// compute all states
+
+		/*
+		 * Note: the original algorithm repeats looping over the entires set of
+		 * states until neither the state set nor the edge set changes. However,
+		 * for any state/transition symbol type combination we will always
+		 * produce the same state/edge, and thus there's no point in visiting a
+		 * state twice. Thus, instead we keep the queue of states to process in
+		 * a list and loop from i = 0 -> list.size(), where list.size() grows as
+		 * we discover new states. When i catches up with list.size(), the
+		 * algorithm has completed.
+		 * 
+		 * This was found to be substantially more performant that the simple
+		 * translation of the algorithm.
+		 */
+
+		// maps unique item sets to labeled states. Caching states this way
+		// allows us
+		// to have two state/transition symbol combinations that map to
+		// equivalent states
+		// use the same state object (thus slowing new state generation and
+		// allowing the algorithm
+		// to terminate)
+		Map<Set<Item>, State> itemsToStates = new HashMap<Set<Item>, State>();
 		itemsToStates.put(startState.items(), startState);
 
-		// compute all states
-		boolean changed;
-		do {
-			changed = false;
+		List<State> stateList = new ArrayList<State>(itemsToStates.values());
+		// for each state I in T
+		for (int i = 0; i < stateList.size(); ++i) {
+			State fromState = stateList.get(i);
+			// for each X in an item A -> A.XB in I
+			for (SymbolType symbolType : fromState.transitionSymbolTypes()) {
+				Set<Item> toStateItems = this.transition(grammar, fromState,
+						symbolType);
 
-			for (State fromState : new ArrayList<State>(itemsToStates.values()))
-				for (SymbolType symbolType : fromState.transitionSymbolTypes()) {
-					Set<Item> toStateItems = this.transition(grammar,
-							fromState, symbolType);
-					State toState = itemsToStates.get(toStateItems);
+				State toState = itemsToStates.get(toStateItems);
 
-					// create a new state if necessary
-					if (toState == null) {
-						toState = new State(
-								String.valueOf(itemsToStates.size() + 1),
-								toStateItems);
-						itemsToStates.put(toState.items(), toState);
-						changed = true;
-					}
-
-					// add the edge, if it's new
-					changed |= edges.add(new Edge(fromState, symbolType,
-							toState));
+				// T <- T U {J}
+				// create a new state if necessary
+				if (toState == null) {
+					toState = new State(
+							String.valueOf(itemsToStates.size() + 1),
+							toStateItems);
+					itemsToStates.put(toState.items(), toState);
+					stateList.add(toState); // queue the new state for further
+											// processing
 				}
-		} while (changed);
+
+				// E <- E U {I -X-> J}
+				// add the edge, if it's new
+				edges.add(new Edge(fromState, symbolType, toState));
+			}
+		}
 
 		// store states
-		states.addAll(itemsToStates.values());
+		states.addAll(stateList);
 
 		// possibly merge states
 		Map<State, State> conversions = this.mergeStates(states);
