@@ -28,8 +28,8 @@ public class LR0Generator extends LRGenerator {
 			for (Item item : new ArrayList<Item>(items))
 				if (item.hasNextSymbolType()
 						&& !item.nextSymbolType().isTerminal()) {
-					for (Production production : grammar
-							.productions(item.nextSymbolType()))
+					for (Production production : grammar.productions(item
+							.nextSymbolType()))
 						changed |= items.add(new Item(production, null, 0));
 				}
 		} while (changed);
@@ -46,17 +46,17 @@ public class LR0Generator extends LRGenerator {
 	@Override
 	protected Set<Item> transition(Grammar grammar, State state,
 			SymbolType symbolType) {
+		// given state I, symbolType X
+		
+		// J <- {}
 		Set<Item> items = new LinkedHashSet<Item>();
+		// for any item (A -> _.XB, z) in I
+		for (Item item : state.transitionItems(symbolType)) {
+			// add (A -> _X.B, z) to J
+			items.add(item.advance());
+		}
 
-		boolean changed;
-		do {
-			changed = false;
-
-			for (Item item : state.transitionItems(symbolType)) {
-				items.add(item.advance());
-			}
-		} while (changed);
-
+		// return CLOSURE(J)
 		return this.closure(grammar, items);
 	}
 
