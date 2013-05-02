@@ -70,7 +70,20 @@ public class Production {
 		// MA: not using Utils.cast() here for efficiency, since productions are
 		// often part of inner loop hash comparisons
 		Production that = obj instanceof Production ? (Production) obj : null;
-		return that != null && this.symbolType().equals(that.symbolType())
+
+		// the reason for checking hash equality here is that productions cache
+		// their hash codes and tend to be long-lived, to be referentially
+		// unique,
+		// and to be hashed before being compared for equality (e. g. if used in
+		// a Set<T>). Because of these properties, equal productions will
+		// generally be
+		// caught by the == check above, so at this point the productions are
+		// likely
+		// unequal and thus the hash check can save use having to call the more
+		// expensive
+		// List.equals method on children.
+		return that != null && this.hashCode() == that.hashCode()
+				&& this.symbolType().equals(that.symbolType())
 				&& this.childTypes().equals(that.childTypes());
 	}
 
