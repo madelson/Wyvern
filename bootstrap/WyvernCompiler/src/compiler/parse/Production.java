@@ -41,8 +41,8 @@ public class Production {
 	}
 
 	/**
-	 * The leftmost terminal symbol type, or null if the production
-	 * contains no terminal symbol types
+	 * The leftmost terminal symbol type, or null if the production contains no
+	 * terminal symbol types
 	 */
 	public SymbolType leftmostTerminalSymbolType() {
 		for (SymbolType type : this.childTypes())
@@ -50,10 +50,10 @@ public class Production {
 				return type;
 		return null;
 	}
-	
+
 	/**
-	 * The rightmost terminal symbol type, or null if the production
-	 * contains no terminal symbol types
+	 * The rightmost terminal symbol type, or null if the production contains no
+	 * terminal symbol types
 	 */
 	public SymbolType rightmostTerminalSymbolType() {
 		for (int i = this.childTypes().size() - 1; i >= 0; i--)
@@ -67,7 +67,9 @@ public class Production {
 		if (this == obj)
 			return true;
 
-		Production that = Utils.cast(obj, Production.class);
+		// MA: not using Utils.cast() here for efficiency, since productions are
+		// often part of inner loop hash comparisons
+		Production that = obj instanceof Production ? (Production) obj : null;
 		return that != null && this.symbolType().equals(that.symbolType())
 				&& this.childTypes().equals(that.childTypes());
 	}
@@ -134,82 +136,101 @@ public class Production {
 
 		return types;
 	}
-	
+
 	public static List<Production> makeOption(SymbolType symbolType) {
 		List<Production> optionProductions = new ArrayList<Production>();
-		optionProductions.add(new Production(symbolType.context().optional(symbolType), symbolType));
-		optionProductions.add(new Production(symbolType.context().optional(symbolType)));
-		
+		optionProductions.add(new Production(symbolType.context().optional(
+				symbolType), symbolType));
+		optionProductions.add(new Production(symbolType.context().optional(
+				symbolType)));
+
 		return optionProductions;
 	}
-	
+
 	/**
-	 * TODO: support automatically adding common error types for unexpected trailing/leading separator or non-empty
+	 * TODO: support automatically adding common error types for unexpected
+	 * trailing/leading separator or non-empty
 	 */
-	public static List<Production> makeList(SymbolType listType, SymbolType elementType, SymbolType separatorType, ListOption... listOptionsArray) {
-		List<Production> listProductions = new ArrayList<Production>();		
+	public static List<Production> makeList(SymbolType listType,
+			SymbolType elementType, SymbolType separatorType,
+			ListOption... listOptionsArray) {
+		List<Production> listProductions = new ArrayList<Production>();
 		List<ListOption> listOptions = Arrays.asList(listOptionsArray);
 
 		if (listOptions.contains(ListOption.AllowTrailingSeparator)) {
-			Utils.check(separatorType != null);			
-			
+			Utils.check(separatorType != null);
+
 			if (listOptions.contains(ListOption.AllowEmpty)) {
-				listProductions.add(new Production(listType, elementType, separatorType, listType));
+				listProductions.add(new Production(listType, elementType,
+						separatorType, listType));
 				listProductions.add(new Production(listType, elementType));
 				listProductions.add(new Production(listType));
 			} else {
-				listProductions.add(new Production(listType, elementType, separatorType, listType));
-				listProductions.add(new Production(listType, elementType, separatorType));
+				listProductions.add(new Production(listType, elementType,
+						separatorType, listType));
+				listProductions.add(new Production(listType, elementType,
+						separatorType));
 				listProductions.add(new Production(listType, elementType));
 			}
 		} else {
 			if (separatorType != null) {
 				if (listOptions.contains(ListOption.AllowEmpty)) {
-					// This is a tough case. You can't put any types before or after listType, since it may be empty and
-					// cannot have a trailing separator. Thus, we need to make use of another symbol
-					
-					// make lists of generated type that can't be empty or have trailing separators
-					// TODO: support auto-generated types to solve cases like this
-					SymbolType generatedListType = listType.context().getNonTerminalSymbolType("__makeList:" + listType.name());
-					listProductions.addAll(makeList(generatedListType, elementType, separatorType));
-					
+					// This is a tough case. You can't put any types before or
+					// after listType, since it may be empty and
+					// cannot have a trailing separator. Thus, we need to make
+					// use of another symbol
+
+					// make lists of generated type that can't be empty or have
+					// trailing separators
+					// TODO: support auto-generated types to solve cases like
+					// this
+					SymbolType generatedListType = listType.context()
+							.getNonTerminalSymbolType(
+									"__makeList:" + listType.name());
+					listProductions.addAll(makeList(generatedListType,
+							elementType, separatorType));
+
 					// then allow a list to be a generatedListType or empty
-					listProductions.add(new Production(listType, generatedListType));
+					listProductions.add(new Production(listType,
+							generatedListType));
 					listProductions.add(new Production(listType));
 				} else {
-					listProductions.add(new Production(listType, elementType, separatorType, listType));					
-					listProductions.add(new Production(listType, elementType));										
+					listProductions.add(new Production(listType, elementType,
+							separatorType, listType));
+					listProductions.add(new Production(listType, elementType));
 				}
 			} else {
 				if (listOptions.contains(ListOption.AllowEmpty)) {
-					listProductions.add(new Production(listType, elementType, listType));
+					listProductions.add(new Production(listType, elementType,
+							listType));
 					listProductions.add(new Production(listType));
 				} else {
-					listProductions.add(new Production(listType, elementType, listType));
-					listProductions.add(new Production(listType, elementType));					
+					listProductions.add(new Production(listType, elementType,
+							listType));
+					listProductions.add(new Production(listType, elementType));
 				}
 			}
 		}
-				
+
 		return listProductions;
 	}
-	
+
 	public static Set<Production> makeOneOf(SymbolType... symbolTypes) {
 		Utils.check(symbolTypes != null && symbolTypes.length > 0);
-		
+
 		Set<Production> orProductions = Utils.set();
-		
+
 		SymbolType or = symbolTypes[0].context().oneOf(symbolTypes);
 		for (SymbolType symbolType : symbolTypes) {
 			orProductions.add(new Production(or, symbolType));
 		}
-		
+
 		return orProductions;
 	}
-	
+
 	public static Set<Production> makeTuple(SymbolType... symbolTypes) {
 		Utils.check(symbolTypes != null && symbolTypes.length > 0);
-		
+
 		SymbolType tuple = symbolTypes[0].context().tuple(symbolTypes);
 		return Collections.singleton(new Production(tuple, symbolTypes));
 	}
