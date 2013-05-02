@@ -32,7 +32,9 @@ public class Tuples {
 		public final boolean equals(Object obj) {
 			if (this == obj)
 				return true;
-			Duo<T1, T2> that = Utils.cast(obj, Duo.class);
+			// MA this is required instead of doing Utils.cast() for performance
+			// reasons
+			Duo<T1, T2> that = obj instanceof Duo ? (Duo<T1, T2>) obj : null;
 			return that != null && Utils.equals(this.item1(), that.item1())
 					&& Utils.equals(this.item2(), that.item2());
 		}
@@ -79,7 +81,10 @@ public class Tuples {
 		public final boolean equals(Object obj) {
 			if (this == obj)
 				return true;
-			Trio<T1, T2, T3> that = Utils.cast(obj, Trio.class);
+			// MA this is required instead of doing Utils.cast() for performance
+			// reasons
+			Trio<T1, T2, T3> that = obj instanceof Trio ? (Trio<T1, T2, T3>) obj
+					: null;
 			return that != null && Utils.equals(this.item1(), that.item1())
 					&& Utils.equals(this.item2(), that.item2())
 					&& Utils.equals(this.item3(), that.item3());
