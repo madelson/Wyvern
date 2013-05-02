@@ -108,13 +108,47 @@ public class NullableFirstFollow {
 	 * Returns the first set for a sequence of elements
 	 */
 	public Set<SymbolType> first(List<SymbolType> types) {
-		Set<SymbolType> firstSet = new LinkedHashSet<SymbolType>(types.size());
-		for (SymbolType type : types) {
-			firstSet.addAll(this.firstSets().get(type));
-			if (!this.nullableSet().contains(type))
-				break;
-		}
-
-		return Collections.unmodifiableSet(firstSet);
+		// MA: this is the original (less-efficient) algorithm.
+		// the actual implementation optimizes several common cases to avoid unnecessarily
+		// constructing extra sets
+		//		Set<SymbolType> firstSet = new LinkedHashSet<SymbolType>(types.size());
+		//		for (SymbolType type : types) {
+		//			firstSet.addAll(this.firstSets().get(type));
+		//			if (!this.nullableSet().contains(type))
+		//				break;
+		//		}
+		//
+		//		return Collections.unmodifiableSet(firstSet);
+		
+		switch (types.size()) {
+		case 0:
+			// the first set of nothing is nothing
+			return Collections.emptySet();
+		case 1:
+			// we already cache the first set of every individual type, so if the
+			// list has only 1 element just return the cached set
+			return this.firstSets().get(types.get(0));
+		default:
+			// special case when we have a non-nullable type at the beginning of the list,
+			// since this is extremely common and allows us to re-use an existing first set
+			// (i. e. this is the same as the one-element case)
+			SymbolType firstType = types.get(0);
+			Set<SymbolType> firstElementFirstSet = this.firstSets().get(firstType);
+			if (!this.nullableSet().contains(firstType)) {
+				return firstElementFirstSet;
+			}
+			
+			// otherwise, loop over each set in the list, adding it's first set to the total
+			// first set. Stop once we've reached a non-nullable element
+			Set<SymbolType> firstSet = new LinkedHashSet<SymbolType>(types.size() * firstElementFirstSet.size());
+			firstSet.addAll(firstElementFirstSet);
+			for (int i = 1; i < types.size(); ++i) {
+				SymbolType type = types.get(i);
+				firstSet.addAll(this.firstSets().get(type));
+				if (!this.nullableSet().contains(type))
+					break;
+			}
+			return Collections.unmodifiableSet(firstSet);
+ 		}
 	}
 }
