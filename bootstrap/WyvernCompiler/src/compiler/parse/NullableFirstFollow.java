@@ -151,4 +151,26 @@ public class NullableFirstFollow {
 			return Collections.unmodifiableSet(firstSet);
  		}
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Nullables: ")
+			.append(this.nullableSet())
+			.append(Utils.NL)
+			.append(Utils.NL);
+		for (Map.Entry<SymbolType, Set<SymbolType>> firstSet : this.firstSets()
+				.entrySet()) {
+			sb.append(firstSet.getKey())
+				.append(Utils.NL)
+				.append("First set: ")
+				.append(firstSet.getValue())
+				.append(Utils.NL)
+				.append("Follow set: ")
+				.append(this.followSets().get(firstSet.getKey()))
+				.append(Utils.NL)
+				.append(Utils.NL);
+		}
+		return sb.toString();
+	}
 }

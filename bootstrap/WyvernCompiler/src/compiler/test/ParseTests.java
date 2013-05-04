@@ -42,6 +42,8 @@ public class ParseTests {
 		Utils.check(nff.followSets().get(X).equals(Utils.set(a, c, d)));
 		Utils.check(nff.followSets().get(Y).equals(Utils.set(a, c, d)));
 		Utils.check(nff.followSets().get(Z).equals(Utils.set()));
+		
+		Utils.check(nff.toString().contains(Utils.NL), "make sure toString() doesn't throw");
 	}
 
 	private static final Context c = new Context();
