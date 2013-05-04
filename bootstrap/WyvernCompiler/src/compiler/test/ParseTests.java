@@ -481,6 +481,29 @@ public class ParseTests {
 		testParser(generator, c.tuple(x, star), productions, map, expected);
 	}
 
+	public static void testMethodCallGrammar(ParserGenerator generator, boolean expected) {
+		CheckedProductionSet productions = new CheckedProductionSet();
+		productions.add(new Production(E, x));
+		productions.add(new Production(L, x, lp, c.listOf(E, comma, Context.ListOption.AllowEmpty), rp));
+		productions.add(new Production(E, L));
+		productions.add(new Production(E, E, plus, x));
+		productions.add(new Production(E, E, plus, L));
+		
+		Map<String, Boolean> map = new LinkedHashMap<String, Boolean>();
+		map.put("x", true);
+		map.put("x+x", true);
+		map.put("x+x+x", true);
+		map.put("x()", true);
+		map.put("x+x()", true);
+		map.put("x+x+x()", true);
+		map.put("(x)", false);
+		map.put("x()+x", true);
+		map.put("x(x)", true);
+		map.put("x(x,x)", true);
+		map.put("x+x(x,x+x())", true);
+		map.put("xx", false);
+		testParser(generator, E, productions, map, expected);
+	}
 	
 	private static void testParser(ParserGenerator generator,
 			SymbolType startSymbol, Collection<Production> productions,
@@ -572,6 +595,11 @@ public class ParseTests {
 		makeTupleTest(slr, true);
 		makeTupleTest(lalr, true);
 		makeTupleTest(lr1, true);	
+		
+		testMethodCallGrammar(lr0, false);
+		testMethodCallGrammar(slr, true);
+		testMethodCallGrammar(lalr, true);
+		testMethodCallGrammar(lr1, true);
 
 		System.out.println("All parse tests passed!");
 	}
