@@ -43,10 +43,12 @@ public class LR1Generator extends LR0Generator {
 		for (int i = 0; i < itemList.size(); ++i) {
 			Item item = itemList.get(i);
 			if (item.hasNextSymbolType() && !item.nextSymbolType().isTerminal()) {
-				// for any production X -> .something
+				
+				Set<SymbolType> firstOfRemaining = grammar.nff().first(item.remaining()); 
+				// for any production X -> .something				
 				for (Production production : grammar.productions(item.nextSymbolType())) {
 					// for any w in FIRST(Bz)
-					for (SymbolType tokenType : grammar.nff().first(item.remaining())) {
+					for (SymbolType tokenType : firstOfRemaining) {
 						// items <- items U { X -> .something, w }
 						Item newItem = new Item(production, tokenType, 0);
 						if (items.add(newItem)) {
