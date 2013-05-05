@@ -34,9 +34,21 @@ public class AllTests {
 		printTime(start);
 		
 		start = System.currentTimeMillis();
-		System.out.println("Skipping Wyvern Grammar tests");
-		//WyvernGrammarTests.main(args);
-		printTime(start);
+		LargeGrammarTest.main(args);
+		printTime(start);	
+		
+//		start = System.currentTimeMillis();
+//		SimpleWyvernLexerTests.main(args);
+//		printTime(start);
+//		
+//		start = System.currentTimeMillis();
+//		SimpleWyvernParserTests.main(args);
+//		printTime(start);	
+//		
+//		start = System.currentTimeMillis();
+//		System.out.println("Skipping Wyvern Grammar tests");
+//		//WyvernGrammarTests.main(args);
+//		printTime(start);
 		
 		System.out.println("\nAll tests passed!");
 		printTime(originalStart);
