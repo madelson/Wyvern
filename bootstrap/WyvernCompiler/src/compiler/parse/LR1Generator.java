@@ -7,6 +7,7 @@ import java.util.*;
 
 import compiler.SymbolType;
 import compiler.Tuples;
+import compiler.Utils;
 
 /**
  * @author Michael
@@ -21,13 +22,7 @@ public class LR1Generator extends LR0Generator {
 	 * java.util.Set)
 	 */
 	@Override
-	protected Set<Item> closure(Grammar grammar, Set<Item> items) {
-		/*
-		 * Items T -> A.XB, z that differ only by lookahead and which have non-nullable B's don't need to be processed
-		 * twice for different lookahead symbols. Thus, we cache them hear for performance
-		 */
-		Set<Tuples.Duo<Production, Integer>> irrelevantLookaheadItems = new HashSet<Tuples.Duo<Production, Integer>>();
-		
+	protected Set<Item> closure(Grammar grammar, Set<Item> items) {		
 		/*
 		 * The official algorithm is:
 		 * Closure(I) = 
@@ -44,6 +39,18 @@ public class LR1Generator extends LR0Generator {
 		 * just iterate from i = 0 -> I.size(), where I.size() grows as we add more items. Whenever
 		 * I stops growing, i will catch up and the algorithm will terminate.
 		 */
+		
+		/*
+		 * Items T -> A.XB, z that differ only by lookahead and which have non-nullable B's don't need to be processed
+		 * twice for different lookahead symbols. Thus, we cache them hear for performance
+		 */
+		Set<Tuples.Duo<Production, Integer>> irrelevantLookaheadItems = new HashSet<Tuples.Duo<Production, Integer>>();
+		
+		/*
+		 * There's no point in trying all productions for any symbol X with the same lookahead symbol w in FIRST(Bz)
+		 * more than once. Thus, we cache such attempts here for performance.
+		 */
+		Map<SymbolType, Set<SymbolType>> symbolFirstSetCache = new HashMap<SymbolType, Set<SymbolType>>();
 				
 		// for any item A -> _.XB, z in items
 		List<Item> itemList = new ArrayList<Item>(items);
@@ -67,16 +74,35 @@ public class LR1Generator extends LR0Generator {
 				}
 				
 				
-				Set<SymbolType> firstOfRemaining = grammar.nff().first(item.remaining()); 
-				// for any production X -> .something				
-				for (Production production : grammar.productions(item.nextSymbolType())) {
-					// for any w in FIRST(Bz)
-					for (SymbolType tokenType : firstOfRemaining) {
+				Set<SymbolType> firstOfRemaining = grammar.nff().first(item.remaining());
+				Set<SymbolType> alreadyTriedFirstSymbols = symbolFirstSetCache.get(item.nextSymbolType());
+				if (alreadyTriedFirstSymbols == null) {
+					// put a copy here because we'll need to modify it and the return value of first() may not be modifiable
+					symbolFirstSetCache.put(item.nextSymbolType(), new HashSet<SymbolType>(firstOfRemaining));
+				}
+				Set<Production> productions = null;
+				
+				// for any w in FIRST(Bz)
+				for (SymbolType tokenType : firstOfRemaining) {
+					
+					// first symbol/lookahead caching
+					if (alreadyTriedFirstSymbols != null && !alreadyTriedFirstSymbols.add(tokenType)) {
+						// avoid trying again if when we add the token to the cache it's already there
+						continue;
+					}
+					if (productions == null) {
+						productions = grammar.productions(tokenType);
+					}
+				
+					// for any production X -> .something				
+					for (Production production : grammar.productions(item.nextSymbolType())) {
 						// items <- items U { X -> .something, w }
 						Item newItem = new Item(production, tokenType, 0);
 						if (items.add(newItem)) {
 							// if we found a new item, queue it for iteration
 							itemList.add(newItem);
+						} else {
+							Utils.err("With first symbol lookahead caching, we should never fail to add a symbol!");
 						}
  					}
  				}
