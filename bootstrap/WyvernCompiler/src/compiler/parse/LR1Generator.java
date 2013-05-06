@@ -60,6 +60,7 @@ public class LR1Generator extends LR0Generator {
 			Item item = itemList.get(i);
 			if (item.hasNextSymbolType() && !item.nextSymbolType().isTerminal()) {
 
+				// TODO: it's not clear how much this really does on top of symbol type first set caching: consider removing it
 				// performance caching of irrelevant lookahead items
 				Tuples.Duo<Production, Integer> irrelevantLookaheadItemKey = new Tuples.Duo<Production, Integer>(
 						item.production(), item.position());
