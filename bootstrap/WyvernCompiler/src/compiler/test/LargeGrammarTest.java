@@ -45,7 +45,9 @@ public class LargeGrammarTest {
 		SymbolType exp = c.getNonTerminalSymbolType("expression");
 		
 		for (char ch = 'a'; ch <= 'z'; ch++) {
-			productions.add(new Production(exp, c.getTerminalSymbolType(String.valueOf(ch))));
+			for (int i = 0; i < 10; ++i) {
+				productions.add(new Production(exp, c.getTerminalSymbolType(String.valueOf(ch) + i)));
+			}
 		}
 		
 		for (String binop : new String[] { "+", "-", "*", "/", "%", "<", "<=", "=", ">=", ">", "!=", "<<", ">>" }) {
