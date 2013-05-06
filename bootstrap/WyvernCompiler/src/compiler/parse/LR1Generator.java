@@ -6,6 +6,7 @@ package compiler.parse;
 import java.util.*;
 
 import compiler.SymbolType;
+import compiler.Tuples;
 
 /**
  * @author Michael
@@ -22,6 +23,12 @@ public class LR1Generator extends LR0Generator {
 	@Override
 	protected Set<Item> closure(Grammar grammar, Set<Item> items) {
 		/*
+		 * Items T -> A.XB, z that differ only by lookahead and which have non-nullable B's don't need to be processed
+		 * twice for different lookahead symbols. Thus, we cache them hear for performance
+		 */
+		Set<Tuples.Duo<Production, Integer>> irrelevantLookaheadItems = new HashSet<Tuples.Duo<Production, Integer>>();
+		
+		/*
 		 * The official algorithm is:
 		 * Closure(I) = 
 		 * repeat
@@ -37,12 +44,28 @@ public class LR1Generator extends LR0Generator {
 		 * just iterate from i = 0 -> I.size(), where I.size() grows as we add more items. Whenever
 		 * I stops growing, i will catch up and the algorithm will terminate.
 		 */
-		
+				
 		// for any item A -> _.XB, z in items
 		List<Item> itemList = new ArrayList<Item>(items);
 		for (int i = 0; i < itemList.size(); ++i) {
 			Item item = itemList.get(i);
 			if (item.hasNextSymbolType() && !item.nextSymbolType().isTerminal()) {
+				
+				// performance caching of irrelevant lookahead items
+				Tuples.Duo<Production, Integer> irrelevantLookaheadItemKey = new Tuples.Duo<Production, Integer>(item.production(), item.position());
+				if (irrelevantLookaheadItems.contains(irrelevantLookaheadItemKey)) {
+					// don't visit the item again
+					continue;
+				}
+				// otherwise, determine whether the item is an irrelevant lookahead item
+				for (int j = item.production().childTypes().size() - 1; j > item.position(); --j) {
+					SymbolType remainingType = item.production().childTypes().get(j);
+					if (remainingType.isTerminal() || !grammar.nff().nullableSet().contains(remainingType)) {
+						irrelevantLookaheadItems.add(irrelevantLookaheadItemKey);
+						break;
+					}
+				}
+				
 				
 				Set<SymbolType> firstOfRemaining = grammar.nff().first(item.remaining()); 
 				// for any production X -> .something				
