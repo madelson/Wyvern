@@ -34,7 +34,7 @@ public class LargeGrammarTest {
 		Grammar g = buildGrammar();
 		LRGenerator.Result result = new LALRGenerator().generate(g);
 		Utils.check(result.parser() != null, "failed to build a parser! " + result.errors());
-		
+		//Utils.check(new compiler.parse.SLRGenerator().generate(g).parser() != null, "slr");
 		System.out.println("All large grammar tests passed!");
 	}
 
@@ -45,7 +45,7 @@ public class LargeGrammarTest {
 		SymbolType exp = c.getNonTerminalSymbolType("expression");
 		
 		for (char ch = 'a'; ch <= 'z'; ch++) {
-			for (int i = 0; i < 10; ++i) {
+			for (int i = 0; i < 1; ++i) {
 				productions.add(new Production(exp, c.getTerminalSymbolType(String.valueOf(ch) + i)));
 			}
 		}

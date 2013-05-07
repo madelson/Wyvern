@@ -62,7 +62,7 @@ public abstract class LRGenerator implements ParserGenerator {
 					edge.symbolType(), (Object) edge);
 			if (action != null) {
 				// no precedence check, since we haven't added reductions yet
-				// and precendence only helps resolve shift-reduce
+				// and precedence only helps resolve shift-reduce
 				errors.add(formatError(action, edge));
 			}
 		}
