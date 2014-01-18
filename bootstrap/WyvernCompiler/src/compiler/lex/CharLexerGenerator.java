@@ -33,6 +33,7 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 
 			@Override
 			public Iterator<Symbol> lex(Reader reader) {
+				@SuppressWarnings("resource") // valid since the inner reader will be closed by the caller
 				final LineNumberAndPositionBufferedReader bufferedReader = new LineNumberAndPositionBufferedReader(
 						reader);
 
