@@ -94,10 +94,15 @@ public class LexerAction {
 			switch (this.actionType) {
 			case Enter:
 				s += "enter state " + this.endState;
+				break;
 			case Leave:
 				s += "leave current state";
+				break;
 			case Swap:
 				s += "switch current state to " + this.endState;
+				break;
+			case None:
+				break;
 			}
 		}
 

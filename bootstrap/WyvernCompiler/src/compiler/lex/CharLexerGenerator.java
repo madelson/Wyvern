@@ -61,7 +61,7 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 							// if there are no more chars to send, send eof
 							if (c == -1) {
 								if (!this.hasNext())
-									throw new NoSuchElementException();
+									throw new NoSuchElementException();								
 								this.sentEOF = true;
 								return context.eofType().createSymbol("",
 										bufferedReader.lineNumber(),
@@ -90,6 +90,8 @@ public class CharLexerGenerator extends LexerGenerator.AbstractLexerGenerator {
 									this.stateStack.pop();
 									this.stateActions = groupedActions
 											.get(this.stateStack.peekFirst());
+									break;
+								case None:
 									break;
 								}
 							}

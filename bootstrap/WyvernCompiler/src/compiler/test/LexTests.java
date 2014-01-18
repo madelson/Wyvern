@@ -360,6 +360,7 @@ public class LexTests {
 				1, Arrays.hashCode(new char[] { '\n', '\n', 'b', 'c' }), 4, 0,
 				'd', -1, 3, 2, 'd', 3, -1, 3, 3, 1, -1 };
 		Utils.check(Arrays.asList(expected).equals(result));
+		r.close();
 	}
 
 	public static void main(String[] args) {
