@@ -1,0 +1,35 @@
+Wyvern libraries:
+
+* lexing & parsing
+* regex
+* collections
+* string manipulation
+* xml
+* json
+* http
+* spreadsheet creation
+* other document handling (e. g. PDF)
+* email
+
+Mono: 
+* XML-RPC.NET
+* Google's Diff-Match-Patch
+* Cecil (inspect .NET binaries)
+* Regex implementation
+* MIME Email
+
+From Apache:
+* BCEL (byte code manipulation)
+* CLI (command line argument parser)
+* CSV
+* Compress
+* Math
+* Some things from collections?
+
+Bouncy castle crypto APIs
+
+R stats algorithms
+
+Math.NET or other math libraries
+
+Protocol buffers

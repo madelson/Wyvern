@@ -1,0 +1,89 @@
+type
+properties
+methods: block (args) { } syntax can also be used for lambdas
+comments
+while loop
+if/else
+generics
+attributes (private, universal)
+imports/usings
+text & number literals
+native blocks
+nullable
+
+https://www.dartlang.org/articles/idiomatic-dart/
+- has some good ideas (e. g. very light-weight c-refs using [])
+
+x = (a, b) => 2;
+x(a, b) => 2;
+x(a, b) { return 2; }
+int x(a, b) => 2
+
+
+primitive types:
+* int ("platform" integer, at least 32 bytes)
+* byte
+* int32, int64 ???
+
+core types:
+* text (string)
+* PlatformArray<T> (native list/array)
+
+syntax:
+
+declaration:
+	type declaration: [attributes] type Name [generic parameters] [is base classes] { [member declarations] }
+	method declaration: [attributes] [return type] Name [generic parameters] method body
+	property declaration: [attributes] [type] Name [generic parameters] [{ [member declarations, including getter and setter decls] }] [= default value expression]
+	
+statement:
+	using [namespace] => lasts until the end of a scope (imports a namespace)
+	expression;
+	{ statement list } (block)
+	if (expression) block [else block]
+	try block [catch block] [finally block]
+	while (expression) block
+	return expression;
+	[type] assignable [= expression]; (assignable is name[.name][expression])
+
+expression:
+	Name
+	(expression)
+	expression.Name
+	expression[<...>](expressions)	
+	expression[expressions]
+	expression is type
+	expression as[?] type
+	expression [+-*/andor==!=] expression
+	method body
+	throw expression
+	literal (numeric, boolean, null, text)
+
+universal type wyvern.collections.MutableList<T> is MutableList<T>
+{
+	private PlatformArray<T> items;
+	count { private set; } = 0
+	
+	public MutableList() 
+	{
+		MutableList<T>(16);
+	}
+	public MutableList(int capacity)	
+		where capacity >= 0
+	{
+		items = PlatformArray<T>(16);
+	}
+	
+	get = (int i) => this.items[i]
+		where this.isValidIndex(i)
+		
+	set = (int index, T value) => this.items[index] = value
+		where this.isValidIndex(index)
+		
+	add(T value) where value >= 0 {
+		this.ensureCapacity(this.count + 1);
+		this.items[count + 1] = value;
+		this.count = this.count + 1;
+	}
+}
+
