@@ -195,10 +195,11 @@ public class Production {
 
 					// make lists of generated type that can't be empty or have
 					// trailing separators
-					// TODO: support auto-generated types to solve cases like
-					// this
-					SymbolType generatedListType = listType.context()
-							.getNonTerminalSymbolType(
+					SymbolType listHelperType = listType.context()
+							.getListHelperType(listType);
+					// backwards-compat: generate a new list helper type on the fly if we don't have one
+					SymbolType generatedListType = listHelperType != null ? listHelperType
+							: listType.context().getNonTerminalSymbolType(
 									"__makeList:" + listType.name());
 					listProductions.addAll(makeList(generatedListType,
 							elementType, separatorType));
