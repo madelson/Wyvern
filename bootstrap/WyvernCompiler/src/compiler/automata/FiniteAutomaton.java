@@ -263,4 +263,15 @@ public class FiniteAutomaton<TState, TTransition>
 		}
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (State<TState> state : this.states()) {
+			sb.append(String.format("State %s%s%s\n", Utils.equals(state, this.startState()) ? "* " : "", state.name(), state.value() != null ? " => " + state.value() : ""));
+			for (Edge<TState, TTransition> edge : this.edgesFrom(state)) {
+				sb.append(String.format("\t on %s goto %s\n", edge.transitionOnSet(), edge.to().name()));
+			}
+		}
+		return sb.toString();
+	}
 }

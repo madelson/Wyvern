@@ -3,8 +3,11 @@
  */
 package compiler.wyvern;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import compiler.Context;
 import compiler.SymbolType;
@@ -17,131 +20,106 @@ import compiler.lex.RegexLexerGenerator;
 
 /**
  * @author Michael
- *
+ * 
  */
 public class WyvernLexer {
 	public static final Context CONTEXT = new Context();
 	public static final Lexer LEXER;
-	public static final String IN_STRING = "IN_STRING", IN_STRING_ESCAPE = "IN_STRING_ESCAPE", IN_COMMENT = "IN_COMMENT";
-	
+
+	private static SymbolType token(String name) {
+		return CONTEXT.getTerminalSymbolType(name);
+	}
+
+	private static <T> Set<T> set(T... elements) {
+		return Collections.unmodifiableSet(Utils.set(elements));
+	}
+
 	/**
-	 * The terminal symbol types for the Wyvern language
+	 * The operator symbols
 	 */
-	public static final SymbolType LPAREN = CONTEXT.getTerminalSymbolType("("),
-			RPAREN = CONTEXT.getTerminalSymbolType(")"),
-			LBRACE = CONTEXT.getTerminalSymbolType("{"),
-			RBRACE = CONTEXT.getTerminalSymbolType("}"),
-			LBRACKET = CONTEXT.getTerminalSymbolType("["),
-			RBRACKET = CONTEXT.getTerminalSymbolType("]"),
-			LCARET = CONTEXT.getTerminalSymbolType("<"),
-			RCARET = CONTEXT.getTerminalSymbolType(">"),
-			LAMBDA_OPERATOR = CONTEXT.getTerminalSymbolType("=>"),
-			ASSIGN = CONTEXT.getTerminalSymbolType("="),
-			EQUALS = CONTEXT.getTerminalSymbolType("=="),
-			NOT = CONTEXT.getTerminalSymbolType("!"),
-			PLUS = CONTEXT.getTerminalSymbolType("+"),
-			MINUS = CONTEXT.getTerminalSymbolType("-"),
-			TIMES = CONTEXT.getTerminalSymbolType("*"),
-			DIVIDED_BY = CONTEXT.getTerminalSymbolType("/"),
-			QUESTION_MARK = CONTEXT.getTerminalSymbolType("?"),
-			AND = CONTEXT.getTerminalSymbolType("and"),
-			OR = CONTEXT.getTerminalSymbolType("or"),
-			IF = CONTEXT.getTerminalSymbolType("if"),
-			ELSE = CONTEXT.getTerminalSymbolType("else"),
-			USING = CONTEXT.getTerminalSymbolType("using"),
-			TYPE = CONTEXT.getTerminalSymbolType("type"),
-			IS = CONTEXT.getTerminalSymbolType("is"),
-			WHERE = CONTEXT.getTerminalSymbolType("where"),
-			PRIVATE = CONTEXT.getTerminalSymbolType("private"),
-			FAMILY = CONTEXT.getTerminalSymbolType("family"),
-			DEFAULT = CONTEXT.getTerminalSymbolType("default"),
-			ACCESS = CONTEXT.getTerminalSymbolType("."),
-			COMMA = CONTEXT.getTerminalSymbolType(","),
-			COLON = CONTEXT.getTerminalSymbolType(":"),
-			STRING_TERMINATOR = CONTEXT.getTerminalSymbolType("\""),
-			STRING_TEXT = CONTEXT.getTerminalSymbolType("string-text"),
-			ESCAPE = CONTEXT.getTerminalSymbolType("\\"),
-			COMMENT_START = CONTEXT.getTerminalSymbolType("comment-start"),
-			COMMENT_END = CONTEXT.getTerminalSymbolType("comment-end"),
-			COMMENT_TEXT = CONTEXT.getTerminalSymbolType("comment-text"),
-			TYPE_IDENTIFIER = CONTEXT.getTerminalSymbolType("type-identifier"),
-			IDENTIFIER = CONTEXT.getTerminalSymbolType("identifier"),
-			INT = CONTEXT.getTerminalSymbolType("int"),
-			REAL = CONTEXT.getTerminalSymbolType("real"),
-			CHAR = CONTEXT.getTerminalSymbolType("char"),
-			OBJECT_ALIAS = CONTEXT.getTerminalSymbolType("obj"),
-			STRING_ALIAS = CONTEXT.getTerminalSymbolType("str"),
-			INT_ALIAS = CONTEXT.getTerminalSymbolType("int"),
-			CHAR_ALIAS = CONTEXT.getTerminalSymbolType("char"),
-			TRUE = CONTEXT.getTerminalSymbolType("true"),
-			FALSE = CONTEXT.getTerminalSymbolType("false"),
-			BOOLEAN_ALIAS = CONTEXT.getTerminalSymbolType("bool"),
-			SEQUENCE_ALIAS = CONTEXT.getTerminalSymbolType("seq"),
-			STMT_END = CONTEXT.getTerminalSymbolType(";"),
-			PACKAGE = CONTEXT.getTerminalSymbolType("package");
-	
+	public static final SymbolType PLUS = token("+"), MINUS = token("-"), TIMES = token("*"), DIV = token("/"),
+			DOT = token("."), EQ = token("=="), NEQ = token("!="), LT = token("<="), LTE = token(">="),
+			GTE = token(">="), GT = token(">"), NOT = token("!"), AND = token("and"), OR = token("or"),
+			IS = token("is"), AS = token("as");
+	public static final Set<SymbolType> OPERATORS = set(PLUS, MINUS, TIMES, DIV, DOT, EQ, NEQ, LT, LTE, GTE, GT, NOT,
+			AND, OR, IS, AS);
+
+	/**
+	 * The keywords
+	 */
+	public static final SymbolType IF = token("if"), ELSE = token("else"), WHILE = token("while"),
+			TYPE = token("type"), INT = token("int"), TEXT = token("text"), NUM = token("num"), BOOL = token("bool"),
+			OBJ = token("obj"), PRIVATE = token("private"), RETURN = token("return"), USING = token("using"),
+			FALSE = token("false"), TRUE = token("true"), NULL = token("null");
+	public static final Set<SymbolType> KEYWORDS = set(IF, ELSE, WHILE, TYPE, INT, TEXT, NUM, BOOL, OBJ, PRIVATE,
+			RETURN, USING, FALSE, TRUE, NULL);
+
+	/**
+	 * Other symbols
+	 */
+	public static final SymbolType LPAREN = token("("), RPAREN = token(")"), LBRACE = token("{"), RBRACE = token("}"),
+			LBRACKET = token("["), RBRACKET = token("]"), COMMA = token(","), IDENTIFIER = token("identifier");
+
+	/**
+	 * Literals
+	 */
+	public static final SymbolType INT_LITERAL = token("int-literal"), NUM_LITERAL = token("num-literal"),
+			TEXT_LITERAL = token("text-literal");
+
+	/**
+	 * Comments
+	 */
+	public static final SymbolType SINGLE_LINE_COMMENT = token("single-line-comment"),
+			MULTI_LINE_COMMENT = token("multi-line-comment");
+
 	static {
-		LinkedHashSet<LexerAction> actions = Utils.<LexerAction>set();
+		LinkedHashSet<LexerAction> actions = Utils.<LexerAction> set();
 		actions.addAll(getCommentActions());
 		actions.addAll(getStringActions());
 		actions.addAll(getSimpleSymbolTypeActions());
 		actions.addAll(getRegexSymbolTypeActions());
 		actions.addAll(getWhitespaceActions());
-		
+
 		LexerGenerator gen = new RegexLexerGenerator();
 		LexerGenerator.Result result = gen.generate(CONTEXT, actions);
 		LEXER = result.lexer();
 	}
-	
+
 	private static LinkedHashSet<LexerAction> getCommentActions() {
-		return Utils.set(
-			LexerAction.enter(Utils.set(Lexer.DEFAULT_STATE, IN_COMMENT), "/\\*", COMMENT_START, IN_COMMENT),
-			LexerAction.leave(Collections.singleton(IN_COMMENT), "\\*/", COMMENT_END),
-			// pick up comment text (possibly in chunks) without mistakenly looking
-			// past "*/"
-			LexerAction.lexToken(Collections.singleton(IN_COMMENT), "([a-zA-Z0-9\n\\+\\-\\. ]+)|.", COMMENT_TEXT)
-		);
+		return Utils.set(LexerAction.lexToken("//[^\n]*\n", SINGLE_LINE_COMMENT),
+		/*
+		 * Match the opening, then repeats of either any number of non-*
+		 * characters or * + a non-slash character. To support /STSTST/, we also
+		 * allow an optional trailing * before the closing
+		 */
+		LexerAction.lexToken("/\\*(([^\\*]+)|(\\*[^/]))*(\\*)?\\*/", MULTI_LINE_COMMENT));
 	}
-	
+
 	private static LinkedHashSet<LexerAction> getStringActions() {
-		return Utils.set(
-			LexerAction.enter(LexerAction.DEFAULT_SET, STRING_TERMINATOR.name(), STRING_TERMINATOR, IN_STRING),
-			LexerAction.enter(Collections.singleton(IN_STRING), "\\\\", ESCAPE, IN_STRING_ESCAPE),
-			LexerAction.leave(Collections.singleton(IN_STRING_ESCAPE), ".", STRING_TEXT),
-			LexerAction.leave(Collections.singleton(IN_STRING), STRING_TERMINATOR.name(), STRING_TERMINATOR),
-			LexerAction.lexToken(Collections.singleton(IN_STRING), "([a-zA-Z0-9\n\\+\\-\\*/\\. ]+)|.", STRING_TEXT)
-		);
+		// 5 backslashes => \\", which the regex engine parses as CHAR('\') CHAR('"')
+		return Utils.set(LexerAction.lexToken("\"([^\"]|(\\\\\"))*\"", TEXT_LITERAL));
 	}
-	
+
 	private static LinkedHashSet<LexerAction> getSimpleSymbolTypeActions() {
-		SymbolType[] simpleTypes = new SymbolType[] {
-			LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LCARET, RCARET,
-			LAMBDA_OPERATOR, ASSIGN, EQUALS, NOT, PLUS, MINUS, TIMES, DIVIDED_BY, AND, OR, STMT_END, ACCESS, COMMA, COLON, QUESTION_MARK,
-			IF, ELSE, TYPE, PRIVATE, FAMILY, DEFAULT, TRUE, FALSE, USING, PACKAGE, IS, WHERE,
-			OBJECT_ALIAS, STRING_ALIAS, INT_ALIAS, BOOLEAN_ALIAS, CHAR_ALIAS, SEQUENCE_ALIAS
-		};
-		
+		List<SymbolType> simpleTypes = new ArrayList<SymbolType>();
+		simpleTypes.addAll(OPERATORS);
+		simpleTypes.addAll(KEYWORDS);
+		simpleTypes.addAll(set(LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, COMMA));
+
 		LinkedHashSet<LexerAction> actions = Utils.set();
 		for (SymbolType simpleType : simpleTypes) {
 			actions.add(LexerAction.lexToken(Regex.escape(simpleType.name()), simpleType));
 		}
-		
+
 		return actions;
 	}
-	
+
 	private static LinkedHashSet<LexerAction> getRegexSymbolTypeActions() {
-		return Utils.set(
-			LexerAction.lexToken("[\\+\\-]?[0-9]*\\.[0-9]+", REAL),
-			LexerAction.lexToken("[a-z][a-zA-Z0-9]*", IDENTIFIER),
-			LexerAction.lexToken("[A-Z][a-zA-z0-9]*", TYPE_IDENTIFIER),
-			LexerAction.lexToken("[\\+\\-]?[0-9]+", INT),
-			LexerAction.lexToken("'\\\\?.'", CHAR)
-		);
+		return Utils.set(LexerAction.lexToken("[\\+\\-]?[0-9]*\\.[0-9]+", NUM_LITERAL),
+				LexerAction.lexToken("[a-zA-Z][a-zA-Z0-9]*", IDENTIFIER), LexerAction.lexToken("[\\+\\-]?[0-9]+", INT));
 	}
-	
+
 	private static LinkedHashSet<LexerAction> getWhitespaceActions() {
-		return Utils.set(
-			LexerAction.skip(LexerAction.DEFAULT_SET, "[ \\n\\t]")
-		);
+		return Utils.set(LexerAction.skip(LexerAction.DEFAULT_SET, "[ \\r\\n\\t]"));
 	}
 }

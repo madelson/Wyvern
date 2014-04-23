@@ -40,7 +40,7 @@ statement:
 	using [namespace] => lasts until the end of a scope (imports a namespace)
 	expression;
 	{ statement list } (block)
-	if (expression) block [else block]
+	if expression block [else block] // no parens for if!
 	try block [catch block] [finally block]
 	while (expression) block
 	return expression;

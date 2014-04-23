@@ -36,6 +36,10 @@ public class AllTests {
 		start = System.currentTimeMillis();
 		LargeGrammarTest.main(args);
 		printTime(start);	
+
+		start = System.currentTimeMillis();
+		WyvernLexerTests.main(args);
+		printTime(start);	
 		
 //		start = System.currentTimeMillis();
 //		SimpleWyvernLexerTests.main(args);
