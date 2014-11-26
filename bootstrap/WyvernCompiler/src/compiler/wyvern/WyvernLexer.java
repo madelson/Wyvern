@@ -38,14 +38,14 @@ public class WyvernLexer {
 	 * The operator symbols
 	 */
 	public static final SymbolType PLUS = token("+"), MINUS = token("-"), TIMES = token("*"), DIV = token("/"),
-			DOT = token("."), EQ = token("=="), NEQ = token("!="), LT = token("<="), LTE = token(">="),
+			DOT = token("."), EQ = token("=="), NEQ = token("!="), LT = token("<"), LTE = token("<="),
 			GTE = token(">="), GT = token(">"), NOT = token("!"), AND = token("and"), OR = token("or"),
-			IS = token("is"), AS = token("as");
+			IS = token("is"), AS = token("as"), LAMBDA = token("=>"), SEMICOLON = token(";");
 	public static final Set<SymbolType> OPERATORS = set(PLUS, MINUS, TIMES, DIV, DOT, EQ, NEQ, LT, LTE, GTE, GT, NOT,
-			AND, OR, IS, AS);
+			AND, OR, IS, AS, LAMBDA, SEMICOLON);
 
 	/**
-	 * The keywords
+	 * Keywords
 	 */
 	public static final SymbolType IF = token("if"), ELSE = token("else"), WHILE = token("while"),
 			TYPE = token("type"), INT = token("int"), TEXT = token("text"), NUM = token("num"), BOOL = token("bool"),
@@ -54,6 +54,12 @@ public class WyvernLexer {
 	public static final Set<SymbolType> KEYWORDS = set(IF, ELSE, WHILE, TYPE, INT, TEXT, NUM, BOOL, OBJ, PRIVATE,
 			RETURN, USING, FALSE, TRUE, NULL);
 
+	/**
+	 * Contextual keywords
+	 */
+	public static final SymbolType GET = token("get"), SET = token("set");
+	public static final Set<SymbolType> CONTEXTUAL_KEYWORDS = set(GET, SET);
+	
 	/**
 	 * Other symbols
 	 */
@@ -104,6 +110,7 @@ public class WyvernLexer {
 		List<SymbolType> simpleTypes = new ArrayList<SymbolType>();
 		simpleTypes.addAll(OPERATORS);
 		simpleTypes.addAll(KEYWORDS);
+		simpleTypes.addAll(CONTEXTUAL_KEYWORDS);
 		simpleTypes.addAll(set(LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, COMMA));
 
 		LinkedHashSet<LexerAction> actions = Utils.set();

@@ -1,6 +1,7 @@
 Wyvern libraries:
 
 * lexing & parsing
+	* Nemerle PEG parser gen seems good
 * regex
 * collections
 * string manipulation
@@ -24,6 +25,7 @@ From Apache:
 * CSV
 * Compress
 * Math
+* Lucene
 * Some things from collections?
 
 Bouncy castle crypto APIs

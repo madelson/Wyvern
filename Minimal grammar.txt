@@ -12,7 +12,7 @@ native blocks
 nullable
 
 https://www.dartlang.org/articles/idiomatic-dart/
-- has some good ideas (e. g. very light-weight c-refs using [])
+- has some good ideas (e. g. very light-weight doc comment c-refs using [])
 
 x = (a, b) => 2;
 x(a, b) => 2;
@@ -23,7 +23,7 @@ int x(a, b) => 2
 primitive types:
 * int ("platform" integer, at least 32 bytes)
 * byte
-* int32, int64 ???
+* int32, int64, num (as in dart) ???
 
 core types:
 * text (string)
@@ -31,17 +31,19 @@ core types:
 
 syntax:
 
+attributes:
+	identifier[(...)] list
+
 declaration:
 	type declaration: [attributes] type Name [generic parameters] [is base classes] { [member declarations] }
 	method declaration: [attributes] [return type] Name [generic parameters] method body
 	property declaration: [attributes] [type] Name [generic parameters] [{ [member declarations, including getter and setter decls] }] [= default value expression]
+	getter declaration: get expression (can use value, field)
+	setter declaration: set statement (can use value, field)
 	
-statement:
-	using [namespace] => lasts until the end of a scope (imports a namespace)
+statement (void expression):
+	using [namespace]; => lasts until the end of a scope (imports a namespace)
 	expression;
-	{ statement list } (block)
-	if expression block [else block] // no parens for if!
-	try block [catch block] [finally block]
 	while (expression) block
 	return expression;
 	[type] assignable [= expression]; (assignable is name[.name][expression])
@@ -54,10 +56,19 @@ expression:
 	expression[expressions]
 	expression is type
 	expression as[?] type
+	expression([args])
 	expression [+-*/andor==!=] expression
+	!expression
 	method body
 	throw expression
 	literal (numeric, boolean, null, text)
+	try expression [catch expression] [finally statement]
+	if expression expression [else expression] // no parens for if!
+	[attributes] { statement list [return [expression]]; } (block)
+	[expression, ...] (seq literal: defaults to immutablelist but can have type inferred)
+	dictionary literal? (e. g. json)
+	object literal (C# anonymous type)?
+	
 
 universal type wyvern.collections.MutableList<T> is MutableList<T>
 {
@@ -68,22 +79,29 @@ universal type wyvern.collections.MutableList<T> is MutableList<T>
 	{
 		MutableList<T>(16);
 	}
+	
 	public MutableList(int capacity)	
 		where capacity >= 0
 	{
 		items = PlatformArray<T>(16);
 	}
 	
-	get = (int i) => this.items[i]
-		where this.isValidIndex(i)
+	get = (int i) where this.isValidIndex(i) => this.items[i]		
 		
-	set = (int index, T value) => this.items[index] = value
-		where this.isValidIndex(index)
+	set = (int index, T value) where this.isValidIndex(index) => this.items[index] = value		
 		
 	add(T value) where value >= 0 {
 		this.ensureCapacity(this.count + 1);
 		this.items[count + 1] = value;
 		this.count = this.count + 1;
+	}
+	
+	private void ensureCapacity(int count) {
+		if (count < this.items.count) {	
+			var newItems = PlatformArray<T>(2 * count);
+			this.items.copyTo(newItems);
+			this.items = newItems;
+		}
 	}
 }
 

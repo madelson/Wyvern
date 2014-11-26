@@ -27,16 +27,11 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 
 		for (SymbolType childType : production.childTypes()) {
 			// if we come across an undefined non-terminal
-			if (!childType.isTerminal()
-					&& !this.definedSymbols.contains(childType)) {
-				SymbolType optionComponentType = childType.context()
-						.getOptionComponentType(childType);
-				Set<SymbolType> oneOfComponentTypes = childType.context()
-						.getOneOfComponentTypes(childType);
-				List<SymbolType> tupleComponentTypes = childType.context()
-						.getTupleComponentTypes(childType);
-				SymbolType listElementType = childType.context()
-						.getListElementType(childType);
+			if (!childType.isTerminal() && !this.definedSymbols.contains(childType)) {
+				SymbolType optionComponentType = childType.context().getOptionComponentType(childType);
+				Set<SymbolType> oneOfComponentTypes = childType.context().getOneOfComponentTypes(childType);
+				List<SymbolType> tupleComponentTypes = childType.context().getTupleComponentTypes(childType);
+				SymbolType listElementType = childType.context().getListElementType(childType);
 
 				// if it's a recursive definition, allow it but don't count the
 				// type as defined
@@ -49,25 +44,19 @@ public class CheckedProductionSet extends LinkedHashSet<Production> {
 				}
 				// if it's an OR we can just define it
 				else if (oneOfComponentTypes != null) {
-					this.addAll(Production.makeOneOf(oneOfComponentTypes
-							.toArray(new SymbolType[oneOfComponentTypes.size()])));
+					this.addAll(Production.makeOneOf(oneOfComponentTypes.toArray(new SymbolType[oneOfComponentTypes
+							.size()])));
 				}
 				// if it's a tuple we can just define it
 				else if (tupleComponentTypes != null) {
-					this.addAll(Production.makeTuple(tupleComponentTypes
-							.toArray(new SymbolType[tupleComponentTypes.size()])));
+					this.addAll(Production.makeTuple(tupleComponentTypes.toArray(new SymbolType[tupleComponentTypes
+							.size()])));
 				}
 				// if it's a list, we can just define it
 				else if (listElementType != null) {
-					this.addAll(Production
-							.makeList(
-									childType,
-									listElementType,
-									childType.context().getListSeparatorType(
-											childType),
-									childType.context()
-											.getListOptions(childType)
-											.toArray(new Context.ListOption[0])));
+					this.addAll(Production.makeList(childType, listElementType, childType.context()
+							.getListSeparatorType(childType),
+							childType.context().getListOptions(childType).toArray(new Context.ListOption[0])));
 				}
 				// otherwise throw an error since we insist that types be
 				// defined in order
