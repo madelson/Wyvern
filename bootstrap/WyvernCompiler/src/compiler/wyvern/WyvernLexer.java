@@ -40,9 +40,9 @@ public class WyvernLexer {
 	public static final SymbolType PLUS = token("+"), MINUS = token("-"), TIMES = token("*"), DIV = token("/"),
 			DOT = token("."), EQ = token("=="), NEQ = token("!="), LT = token("<"), LTE = token("<="),
 			GTE = token(">="), GT = token(">"), NOT = token("!"), AND = token("and"), OR = token("or"),
-			IS = token("is"), AS = token("as"), LAMBDA = token("=>"), SEMICOLON = token(";");
+			IS = token("is"), AS = token("as"), LAMBDA = token("=>"), SEMICOLON = token(";"), ASSIGN = token("=");
 	public static final Set<SymbolType> OPERATORS = set(PLUS, MINUS, TIMES, DIV, DOT, EQ, NEQ, LT, LTE, GTE, GT, NOT,
-			AND, OR, IS, AS, LAMBDA, SEMICOLON);
+			AND, OR, IS, AS, LAMBDA, SEMICOLON, ASSIGN);
 
 	/**
 	 * Keywords
@@ -123,7 +123,7 @@ public class WyvernLexer {
 
 	private static LinkedHashSet<LexerAction> getRegexSymbolTypeActions() {
 		return Utils.set(LexerAction.lexToken("[\\+\\-]?[0-9]*\\.[0-9]+", NUM_LITERAL),
-				LexerAction.lexToken("[a-zA-Z][a-zA-Z0-9]*", IDENTIFIER), LexerAction.lexToken("[\\+\\-]?[0-9]+", INT));
+				LexerAction.lexToken("[a-zA-Z][a-zA-Z0-9]*", IDENTIFIER), LexerAction.lexToken("[\\+\\-]?[0-9]+", INT_LITERAL));
 	}
 
 	private static LinkedHashSet<LexerAction> getWhitespaceActions() {

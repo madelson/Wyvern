@@ -8,10 +8,8 @@ import static compiler.wyvern.WyvernParser.*;
 
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,8 +50,10 @@ public class WyvernGrammarTests {
 
 		testCases.add(make("a.b<foo>;", "<foo>", GENERIC_PARAMETERS));
 		testCases.add(make("a.b.c;", "a.b.c", EXPRESSION));
-		String typeDeclaration = "private type Foo { Bar a; Baz b; }";
+		String typeDeclaration = "private sql type Foo { Bar a; Baz b = 7; }";
 		testCases.add(make(typeDeclaration, "Bar a;", MEMBER_DECL));
+		testCases.add(make(typeDeclaration, "sql", ATTRIBUTE));
+		testCases.add(make(typeDeclaration, "Baz b = 7;", MEMBER_DECL));
 		
 		TEST_CASES = Collections.unmodifiableList(testCases);
 	}

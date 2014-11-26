@@ -65,12 +65,17 @@ public class WyvernParser {
 				.optional(GENERIC_PARAMETERS)));
 		productions.add(new Production(NAME, CONTEXT.listOf(NAME_PART, DOT)));
 
+		// expressions
+		productions.add(new Production(EXPRESSION, NAME));
+		productions.add(new Production(EXPRESSION, CONTEXT.oneOf(INT_LITERAL, NUM_LITERAL, TEXT_LITERAL)));
+		
 		// attribute
 		productions.add(new Production(ATTRIBUTE, PRIVATE));
+		productions.add(new Production(ATTRIBUTE, NAME));
 		// TODO others
 		
 		// property declaration
-		productions.add(new Production(PROPERTY_DECL, NAME, IDENTIFIER, SEMICOLON));
+		productions.add(new Production(PROPERTY_DECL, NAME, IDENTIFIER, CONTEXT.optional(CONTEXT.tuple(ASSIGN, EXPRESSION)), SEMICOLON));
 		
 		// member declaration
 		productions.add(new Production(MEMBER_DECL, PROPERTY_DECL));
@@ -79,7 +84,6 @@ public class WyvernParser {
 		productions.add(new Production(TYPE_DECL, CONTEXT.optional(CONTEXT.listOf(ATTRIBUTE)), TYPE, NAME, CONTEXT
 				.optional(CONTEXT.tuple(IS, NAME)), LBRACE, CONTEXT.optional(CONTEXT.listOf(MEMBER_DECL)), RBRACE));
 
-		productions.add(new Production(EXPRESSION, NAME));
 		productions.add(new Production(STATEMENT, TYPE_DECL));
 		productions.add(new Production(STATEMENT, EXPRESSION, SEMICOLON));
 
