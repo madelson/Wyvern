@@ -52,6 +52,8 @@ public class WyvernGrammarTests {
 
 		testCases.add(make("a.b<foo>;", "<foo>", GENERIC_PARAMETERS));
 		testCases.add(make("a.b.c;", "a.b.c", EXPRESSION));
+		String typeDeclaration = "private type Foo { Bar a; Baz b; }";
+		testCases.add(make(typeDeclaration, "Bar a;", MEMBER_DECL));
 		
 		TEST_CASES = Collections.unmodifiableList(testCases);
 	}
