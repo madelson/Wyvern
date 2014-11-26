@@ -43,7 +43,7 @@ public class LR1Generator extends LR0Generator {
 		/*
 		 * Items T -> A.XB, z that differ only by lookahead and which have
 		 * non-nullable B's don't need to be processed twice for different
-		 * lookahead symbols. Thus, we cache them hear for performance
+		 * lookahead symbols. Thus, we cache them here for performance
 		 */
 		Set<Tuples.Duo<Production, Integer>> irrelevantLookaheadItems = new HashSet<Tuples.Duo<Production, Integer>>();
 

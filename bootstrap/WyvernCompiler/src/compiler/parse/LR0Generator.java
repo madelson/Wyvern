@@ -42,6 +42,11 @@ public class LR0Generator extends LRGenerator {
 		for (int i = 0; i < itemList.size(); ++i) {
 			Item item = itemList.get(i);
 			if (item.hasNextSymbolType() && !item.nextSymbolType().isTerminal()) {
+				// TODO PERF: it seems like we are doing extra work here, because we're 
+				// re-looping over all productions for a particular symbol type unecessarily. We could
+				// potentially remember the symbol types we've already looped over and use that to avoid
+				// the scan
+				
 				// for any production X -> .something
 				for (Production production : grammar.productions(item.nextSymbolType())) {
 					// items <- items U { X -> .something }
