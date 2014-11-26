@@ -39,7 +39,8 @@ public class WyvernParser {
 			BLOCK = symbol("block"), TYPE_DECL = symbol("type-decl"), METHOD_DECL = symbol("method-decl"),
 			METHOD_BODY = symbol("method-body"), PROPERTY_DECL = symbol("property-decl"),
 			GENERIC_PARAMETERS = symbol("generic-parameters"), NAME_PART = symbol("name-part"), NAME = symbol("name"),
-			PROGRAM = symbol("program"), ATTRIBUTE = symbol("attribute"), MEMBER_DECL = symbol("member-decl");
+			PROGRAM = symbol("program"), ATTRIBUTE = symbol("attribute"), MEMBER_DECL = symbol("member-decl"), GETTER_DECL = symbol("getter-decl"),
+			SETTER_DECL = symbol("setter-decl");
 
 	static {
 		GRAMMAR = buildGrammar();
@@ -68,14 +69,21 @@ public class WyvernParser {
 		// expressions
 		productions.add(new Production(EXPRESSION, NAME));
 		productions.add(new Production(EXPRESSION, CONTEXT.oneOf(INT_LITERAL, NUM_LITERAL, TEXT_LITERAL)));
+		productions.add(new Production(STATEMENT, EXPRESSION, SEMICOLON));
+		productions.add(new Production(STATEMENT, RETURN, EXPRESSION, SEMICOLON));
 		
 		// attribute
 		productions.add(new Production(ATTRIBUTE, PRIVATE));
 		productions.add(new Production(ATTRIBUTE, NAME));
 		// TODO others
 		
+		productions.add(new Production(METHOD_BODY, LBRACE, CONTEXT.optional(CONTEXT.listOf(STATEMENT)), RBRACE));
+		
 		// property declaration
 		productions.add(new Production(PROPERTY_DECL, NAME, IDENTIFIER, CONTEXT.optional(CONTEXT.tuple(ASSIGN, EXPRESSION)), SEMICOLON));
+		productions.add(new Production(GETTER_DECL, GET, METHOD_BODY));
+		productions.add(new Production(SETTER_DECL, SET, METHOD_BODY));
+		productions.add(new Production(PROPERTY_DECL, NAME, IDENTIFIER, LBRACE, CONTEXT.optional(GETTER_DECL), CONTEXT.optional(SETTER_DECL), RBRACE));	
 		
 		// member declaration
 		productions.add(new Production(MEMBER_DECL, PROPERTY_DECL));
@@ -85,7 +93,6 @@ public class WyvernParser {
 				.optional(CONTEXT.tuple(IS, NAME)), LBRACE, CONTEXT.optional(CONTEXT.listOf(MEMBER_DECL)), RBRACE));
 
 		productions.add(new Production(STATEMENT, TYPE_DECL));
-		productions.add(new Production(STATEMENT, EXPRESSION, SEMICOLON));
 
 		productions.add(new Production(PROGRAM, CONTEXT.listOf(STATEMENT, ListOption.AllowEmpty)));
 

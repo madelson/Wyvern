@@ -50,10 +50,11 @@ public class WyvernGrammarTests {
 
 		testCases.add(make("a.b<foo>;", "<foo>", GENERIC_PARAMETERS));
 		testCases.add(make("a.b.c;", "a.b.c", EXPRESSION));
-		String typeDeclaration = "private sql type Foo { Bar a; Baz b = 7; }";
+		String typeDeclaration = "private sql type Foo { Bar a; Baz b = 7; Buzz c { get { return 1; } } }";
 		testCases.add(make(typeDeclaration, "Bar a;", MEMBER_DECL));
 		testCases.add(make(typeDeclaration, "sql", ATTRIBUTE));
 		testCases.add(make(typeDeclaration, "Baz b = 7;", MEMBER_DECL));
+		testCases.add(make(typeDeclaration, "get { return 1; }", GETTER_DECL));
 		
 		TEST_CASES = Collections.unmodifiableList(testCases);
 	}
