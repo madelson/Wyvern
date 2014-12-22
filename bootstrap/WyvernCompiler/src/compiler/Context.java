@@ -536,10 +536,11 @@ public class Context {
 						Symbol lastChild = null;
 
 						for (Symbol child : children) {
-							if (child.text().isEmpty())
+							String childText = child.text();
+							if (childText.isEmpty())
 								continue;
 							if (lastChild == null) {
-								sb.append(child.text());
+								sb.append(childText);
 								lastChild = child;
 								continue;
 							}
@@ -555,7 +556,7 @@ public class Context {
 								sb.append(Utils.NL);
 							for (int i = 0; i < posDiff; i++)
 								sb.append(' ');
-							sb.append(child.text());
+							sb.append(childText);
 							lastChild = child;
 						}
 
