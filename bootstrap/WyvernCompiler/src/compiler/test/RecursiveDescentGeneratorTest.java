@@ -88,14 +88,13 @@ public class RecursiveDescentGeneratorTest {
 		test(lexer, parser, "1 * 2 + 3");
 		test(lexer, parser, "(1 + 2) + 3 * (4 + 5) + 6");
 		test(lexer, parser, "1/2/3/4*5/2/4/5");
-		test(lexer, parser, "1+2-3*4/5+6-7+8*9/10");
+		test(lexer, parser, "1+2-3*4/5+6-7+8*9/10");			
 	}
 	
 	private static Symbol test(Lexer lexer, Parser parser, String text) {
 		Iterator<Symbol> tokens = lexer.lex(new StringReader(text));
 		
 		Parser.Result result = parser.parse(tokens);
-		
 		Utils.check(result.succeeded(), "parse failed for " + text);
 		Utils.check(result.parseTree().text().equals(text), "reconstruction failed for " + text + " was: " + result.parseTree().text());
 		

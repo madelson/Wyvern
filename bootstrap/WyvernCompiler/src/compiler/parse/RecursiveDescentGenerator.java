@@ -139,11 +139,10 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 		productions.add(production);		
 	}
 	
-	private static class ParserInstance {
+	private static final class ParserInstance {
+		private final ParseCache cache = new ParseCache();
 		private final Map<SymbolType, Map<SymbolType, List<Production>>> parseTable;
 		private final List<Symbol> tokens;
-		
-		// TODO cache of (production, index) => symbol
 		
 		private List<ProductionIndexPair> bannedProductions = new ArrayList<ProductionIndexPair>();
 		private int tokenIndex;	
@@ -155,6 +154,13 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 	
 		public Symbol tryParse(SymbolType symbolType) {
 			int startTokenIndex = this.tokenIndex;
+			
+			// check the cache
+			int cacheIndex = this.cache.get(startTokenIndex, symbolType);
+			if (cacheIndex >= 0) {
+				this.tokenIndex = this.cache.nextIndexCache[cacheIndex];
+				return this.cache.symbolCache[cacheIndex];
+			}
 			
 			// use the parse table to determine the productions to be considered for parsing the given type
 			SymbolType nextTokenType = this.tokens.get(startTokenIndex).type();
@@ -180,16 +186,22 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 				}
 				
 				if (!banned) {
-					Symbol parsed = this.tryParse(production);
+					Symbol parsed = this.tryParse(production);					
 					
 					if (parsed == null) {
 						// backtrack
 						this.tokenIndex = startTokenIndex;
-					} else {
+					} else {			
+						// populate the cache on success
+						this.cache.put(startTokenIndex, this.tokenIndex, symbolType, parsed);
+						
 						return parsed;
 					}
 				}
 			}
+			
+			// populate the cache on failure
+			this.cache.put(startTokenIndex, startTokenIndex, symbolType, null);
 			
 			return null;
 		}
@@ -243,7 +255,7 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 			return production.symbolType().createSymbol(parsedChildren != null ? parsedChildren : Collections.<Symbol>emptyList()); 
 		}
 		
-		private static class ProductionIndexPair {
+		private static final class ProductionIndexPair {
 			public final Production production;
 			public final int tokenIndex;
 			
@@ -252,5 +264,42 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 				this.tokenIndex = tokenIndex;
 			}
 		}
-	}
+		
+		private static final class ParseCache {
+			private static final int CACHE_SIZE = 1 << 10;
+			
+			public final Symbol[] symbolCache = new Symbol[CACHE_SIZE];
+			public final int[] nextIndexCache = new int[CACHE_SIZE];
+			private final SymbolType[] symbolTypeCache = new SymbolType[CACHE_SIZE];
+			private final int[] indexCache = new int[CACHE_SIZE];
+			
+			public ParseCache() {
+				Arrays.fill(this.indexCache, -1);
+			}
+			
+			public int get(int index, SymbolType symbolType) {
+				int hash = hash(index, symbolType);
+				if (this.indexCache[hash] == index
+					&& symbolType.equals(this.symbolTypeCache[hash])) {
+					return hash;
+				}
+				
+				return -1;
+			}
+			
+			public void put(int startIndex, int endIndex, SymbolType symbolType, Symbol symbol) {
+				int hash = hash(startIndex, symbolType);
+				this.symbolCache[hash] = symbol;
+				this.nextIndexCache[hash] = endIndex;
+				this.indexCache[hash] = startIndex;
+				this.symbolTypeCache[hash] = symbolType;
+			}
+			
+			private static int hash(int index, SymbolType symbolType) {
+				// suggestion from http://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes
+				// the & does both abs and mod, since CACHE_SIZE is a power of 2
+				return ((3 * index) + symbolType.hashCode()) & (CACHE_SIZE - 1);
+			}
+		}
+	}	
 }
