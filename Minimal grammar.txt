@@ -10,6 +10,7 @@ imports/usings
 text & number literals
 native blocks
 nullable
+try/catch
 
 https://www.dartlang.org/articles/idiomatic-dart/
 - has some good ideas (e. g. very light-weight doc comment c-refs using [])
@@ -58,6 +59,7 @@ expression:
 	expression as[?] type
 	expression([args])
 	expression [+-*/andor==!=] expression
+	-expression
 	!expression
 	method body
 	throw expression
@@ -105,3 +107,5 @@ universal type wyvern.collections.MutableList<T> is MutableList<T>
 	}
 }
 
+* idea from roslyn: "trivia" to describe things like comments, whitespace. Tokens have leading and trailing triva
+* idea: dfa-based parser using regex concepts -> could have terrible error handling..., also not sure it would work because regular grammars differ from CFGs
