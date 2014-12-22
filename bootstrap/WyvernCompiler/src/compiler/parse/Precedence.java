@@ -24,6 +24,14 @@ public class Precedence {
 			}
 		}
 	}
+	
+	public static PrecedenceFunction createEmptyFunction() {
+		return createFunction(
+			new LinkedHashMap<Set<SymbolType>, Associativity>(),
+			ProductionPrecedence.None,
+			Collections.<Production, SymbolType>emptyMap()
+		);
+	}
 
 	public static PrecedenceFunction createFunction(
 			LinkedHashMap<Set<SymbolType>, Associativity> symbolTypePrecedences,

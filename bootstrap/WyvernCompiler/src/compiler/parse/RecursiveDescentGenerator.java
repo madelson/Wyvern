@@ -1,0 +1,256 @@
+/**
+ * 
+ */
+package compiler.parse;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+
+import compiler.Symbol;
+import compiler.SymbolType;
+import compiler.Tuples;
+import compiler.Utils;
+
+/**
+ * @author mikea_000
+ *
+ */
+public class RecursiveDescentGenerator implements ParserGenerator {
+
+	/* (non-Javadoc)
+	 * @see compiler.parse.ParserGenerator#generate(compiler.parse.Grammar)
+	 */
+	@Override
+	public Result generate(final Grammar grammar) {	
+		// Build the LL(1) predictive table. Unlike true LL(1), however, we'll try all valid productions instead
+		// of becoming stuck when we can't "predict" the right one. this table tells which productions 
+		// X -> a are valid to attempt for a next symbol s. A production is valid if s is in FIRST(a) or if a is nullable
+		// and s is in FOLLOW(a)
+		final Map<SymbolType, Map<SymbolType, List<Production>>> parseTable = new HashMap<SymbolType, Map<SymbolType, List<Production>>>();
+		for (Production production : grammar.productions()) {
+			if (production.childTypes().isEmpty()) {
+				// X -> nothing should be valid for any token type
+				for (SymbolType tokenType : grammar.terminalSymbolTypes()) {
+					addToParseTable(parseTable, tokenType, production);
+				}
+			}
+			else {
+				for (SymbolType firstType : grammar.nff().first(production.childTypes())) {
+					addToParseTable(parseTable, firstType, production);
+				}
+				
+				boolean isNullable = true;
+				for (SymbolType childType : production.childTypes()) {
+					if (!grammar.nff().nullableSet().contains(childType)) {
+						isNullable = false;
+						break;
+					}
+				}
+				if (isNullable) {
+					for (SymbolType followType : grammar.nff().followSets().get(Utils.last(production.childTypes()))) {
+						addToParseTable(parseTable, followType, production);
+					}
+				}	
+			}			
+		}
+		
+		final Parser parser = new Parser() {
+
+			@Override
+			public boolean isCompiled() {
+				return false;
+			}
+
+			@Override
+			public Result parse(Iterator<Symbol> tokenStream) {
+				List<Symbol> tokens = Utils.toList(tokenStream);
+				
+				ParserInstance instance = new ParserInstance(parseTable, tokens);
+				final Symbol parseTree = instance.tryParse(grammar.startSymbolType());
+				
+				return new Result() {
+
+					@Override
+					public List<String> errors() {
+						return parseTree == null 
+							? Arrays.asList("Failed to parse")
+							: Collections.<String>emptyList();
+					}
+
+					@Override
+					public List<String> warnings() {
+						return Collections.emptyList();
+					}
+
+					@Override
+					public Symbol parseTree() {
+						return parseTree;
+					}
+					
+				};
+			}
+			
+		};
+		
+		return new Result() {
+
+			@Override
+			public List<String> errors() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> warnings() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public Parser parser() {
+				return parser;
+			}
+			
+		};
+	}
+	
+	private static void addToParseTable(Map<SymbolType, Map<SymbolType, List<Production>>> parseTable, SymbolType tokenType, Production production) {
+		Utils.check(tokenType.isTerminal(), "tokenType: must be terminal");
+		
+		Map<SymbolType, List<Production>> productionMap = parseTable.get(tokenType);
+		if (productionMap == null) {
+			parseTable.put(tokenType, productionMap = new HashMap<SymbolType, List<Production>>());
+		}
+		
+		List<Production> productions = productionMap.get(production.symbolType());
+		if (productions == null) {
+			productionMap.put(production.symbolType(), productions = new ArrayList<Production>());
+		}
+		
+		productions.add(production);		
+	}
+	
+	private static class ParserInstance {
+		private final Map<SymbolType, Map<SymbolType, List<Production>>> parseTable;
+		private final List<Symbol> tokens;
+		
+		// TODO cache of (production, index) => symbol
+		
+		private List<ProductionIndexPair> bannedProductions = new ArrayList<ProductionIndexPair>();
+		private int tokenIndex;	
+		
+		public ParserInstance(Map<SymbolType, Map<SymbolType, List<Production>>> parseTable, List<Symbol> tokens) {
+			this.parseTable = parseTable;
+			this.tokens = tokens;
+		}
+	
+		public Symbol tryParse(SymbolType symbolType) {
+			int startTokenIndex = this.tokenIndex;
+			
+			// use the parse table to determine the productions to be considered for parsing the given type
+			SymbolType nextTokenType = this.tokens.get(startTokenIndex).type();
+			Map<SymbolType, List<Production>> tableEntry = this.parseTable.get(nextTokenType);
+			if (tableEntry == null) {
+				return null;
+			}	
+			List<Production> productions = tableEntry.get(symbolType);
+			if (productions == null) {
+				return null;
+			}
+			
+			for (int i = 0; i < productions.size(); ++i) {
+				Production production = productions.get(i);
+				
+				// determine if the production is banned
+				boolean banned = false;
+				for (int j = this.bannedProductions.size() - 1; j >= 0 && this.bannedProductions.get(j).tokenIndex == startTokenIndex; --j) {
+					if (production == this.bannedProductions.get(j).production) {
+						banned = true;
+						break;
+					}
+				}
+				
+				if (!banned) {
+					Symbol parsed = this.tryParse(production);
+					
+					if (parsed == null) {
+						// backtrack
+						this.tokenIndex = startTokenIndex;
+					} else {
+						return parsed;
+					}
+				}
+			}
+			
+			return null;
+		}
+		
+		private Symbol tryParse(Production production) {			
+			List<Symbol> parsedChildren = null;
+			for (int i = 0; i < production.childTypes().size(); ++i) {
+				SymbolType childType = production.childTypes().get(i);
+				// if matching a token, try to eat the token
+				if (childType.isTerminal()) {
+					if (this.tokenIndex >= this.tokens.size()) {
+						return null;
+					} 
+					Symbol currentToken = this.tokens.get(this.tokenIndex);
+					if (!currentToken.type().equals(childType)) {
+						return null;
+					}
+					
+					if (parsedChildren == null) {
+						parsedChildren = new ArrayList<Symbol>();
+					}
+					parsedChildren.add(currentToken);
+					++this.tokenIndex;
+				}
+				else {
+					// parse a non-terminal recursively
+					
+					if (i == 0) {
+						// if this is the first symbol type in the production, protect against infinite left-recursion
+						// by banning further use of the production at this index
+						this.bannedProductions.add(new ProductionIndexPair(production, this.tokenIndex));
+					}
+					
+					Symbol parsed = this.tryParse(childType);					
+					
+					if (i == 0) {
+						this.bannedProductions.remove(this.bannedProductions.size() - 1);
+					}				
+					
+					if (parsed == null) {
+						return null;
+					}
+					
+					if (parsedChildren == null) {
+						parsedChildren = new ArrayList<Symbol>();
+					}
+					parsedChildren.add(parsed);
+				}				
+			}
+			
+			return production.symbolType().createSymbol(parsedChildren != null ? parsedChildren : Collections.<Symbol>emptyList()); 
+		}
+		
+		private static class ProductionIndexPair {
+			public final Production production;
+			public final int tokenIndex;
+			
+			public ProductionIndexPair(Production production, int tokenIndex) {
+				this.production = production;
+				this.tokenIndex = tokenIndex;
+			}
+		}
+	}
+}
