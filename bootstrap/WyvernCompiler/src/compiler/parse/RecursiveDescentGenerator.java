@@ -155,12 +155,13 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 		public Symbol tryParse(SymbolType symbolType) {
 			int startTokenIndex = this.tokenIndex;
 			
+			// todo not right because of banning: context matters!
 			// check the cache
-			int cacheIndex = this.cache.get(startTokenIndex, symbolType);
-			if (cacheIndex >= 0) {
-				this.tokenIndex = this.cache.nextIndexCache[cacheIndex];
-				return this.cache.symbolCache[cacheIndex];
-			}
+//			int cacheIndex = this.cache.get(startTokenIndex, symbolType);
+//			if (cacheIndex >= 0) {
+//				this.tokenIndex = this.cache.nextIndexCache[cacheIndex];
+//				return this.cache.symbolCache[cacheIndex];
+//			}
 			
 			// use the parse table to determine the productions to be considered for parsing the given type
 			SymbolType nextTokenType = this.tokens.get(startTokenIndex).type();
@@ -176,12 +177,16 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 			for (int i = 0; i < productions.size(); ++i) {
 				Production production = productions.get(i);
 				
-				// determine if the production is banned
+				System.out.println("Trying " + production + " @ " + startTokenIndex);
+				
+				// determine if the production is banned. This prevents us from ever trying the same production at the same index within
+				// a recursion stack, thus putting a cap on how deep we can recurse and also permitting left-recursion
 				boolean banned = false;
 				for (int j = this.bannedProductions.size() - 1; j >= 0 && this.bannedProductions.get(j).tokenIndex == startTokenIndex; --j) {
 					if (production == this.bannedProductions.get(j).production) {
 						banned = true;
-						break;
+						System.out.println(production  + " banned @ " + startTokenIndex);
+						continue;
 					}
 				}
 				
@@ -194,15 +199,16 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 					} else {			
 						// populate the cache on success
 						this.cache.put(startTokenIndex, this.tokenIndex, symbolType, parsed);
-						
+						System.out.println(production + " worked @ " + startTokenIndex);
 						return parsed;
 					}
 				}
 			}
 			
 			// populate the cache on failure
-			this.cache.put(startTokenIndex, startTokenIndex, symbolType, null);
+//			this.cache.put(startTokenIndex, startTokenIndex, symbolType, null);
 			
+			System.out.println("failed @ " + startTokenIndex);
 			return null;
 		}
 		
