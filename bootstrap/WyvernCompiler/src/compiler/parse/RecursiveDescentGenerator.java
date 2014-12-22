@@ -206,7 +206,7 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 			}
 			
 			// populate the cache on failure
-//			this.cache.put(startTokenIndex, startTokenIndex, symbolType, null);
+			this.cache.put(startTokenIndex, startTokenIndex, symbolType, null);
 			
 			System.out.println("failed @ " + startTokenIndex);
 			return null;
