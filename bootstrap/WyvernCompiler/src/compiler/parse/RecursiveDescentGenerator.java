@@ -255,8 +255,8 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 		private final Map<SymbolType, Map<SymbolType, List<Production>>> parseTable;
 		private final RecursiveDescentAnalyzer analyzer;
 		private final List<Symbol> tokens;
+		private final RecursiveDescentPrecedenceHelper precedenceHelper;
 
-		private final List<ProductionIndexPair> bannedProductions = new ArrayList<ProductionIndexPair>();
 		private int tokenIndex;
 
 		public ParserInstance(Map<SymbolType, Map<SymbolType, List<Production>>> parseTable,
@@ -264,6 +264,7 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 			this.parseTable = parseTable;
 			this.analyzer = analyzer;
 			this.tokens = tokens;
+			this.precedenceHelper = new RecursiveDescentPrecedenceHelper(this.analyzer);
 		}
 
 		public Symbol tryParse(SymbolType symbolType) {
@@ -293,20 +294,13 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 				return null;
 			}
 
-			ProductionLoop: for (int i = 0; i < productions.size(); ++i) {
+			for (int i = 0; i < productions.size(); ++i) {
 				Production production = productions.get(i);
 
 				// determine if the production is banned for left-recursion or
 				// precedence reasons
-				for (int j = this.bannedProductions.size() - 1; j >= 0; --j) {
-					ProductionIndexPair pair = this.bannedProductions.get(j);
-					if (pair.tokenIndex != startTokenIndex) {
-						break;
-					}
-
-					if (!this.analyzer.allow(production, pair.rule, pair.production)) {
-						continue ProductionLoop;
-					}
+				if (!this.precedenceHelper.allow(production, startTokenIndex)) {
+					continue;
 				}
 
 				Symbol parsed = this.tryParse(production);
@@ -351,13 +345,13 @@ public class RecursiveDescentGenerator implements ParserGenerator {
 					RecursiveDescentAnalyzer.Rule rule = this.analyzer.getRule(production, i);
 					boolean requiresBan = rule != Rule.None;
 					if (requiresBan) {
-						this.bannedProductions.add(new ProductionIndexPair(production, this.tokenIndex, rule));
+						this.precedenceHelper.pushRuleScope(this.tokenIndex, production, rule);
 					}
 
 					Symbol parsed = this.tryParse(childType);
 
 					if (requiresBan) {
-						this.bannedProductions.remove(this.bannedProductions.size() - 1);
+						this.precedenceHelper.popRuleScope();
 					}
 
 					if (parsed == null) {
