@@ -7,7 +7,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 
 import compiler.Context;
 import compiler.Symbol;
@@ -28,108 +28,142 @@ import compiler.parse.RecursiveDescentGenerator;
 
 /**
  * @author mikea_000
- *
+ * 
  */
 public class RecursiveDescentGeneratorTest {
 	private static final Context CONTEXT = new Context();
-	private static final SymbolType INT = CONTEXT.getTerminalSymbolType("int-literal"),
-			PLUS = CONTEXT.getTerminalSymbolType("+"),
-			MINUS = CONTEXT.getTerminalSymbolType("-"),
-			TIMES = CONTEXT.getTerminalSymbolType("*"),
-			DIVIDED_BY = CONTEXT.getTerminalSymbolType("/"),
-			LPAREN = CONTEXT.getTerminalSymbolType("("),
-			RPAREN = CONTEXT.getTerminalSymbolType(")");
-	
-	private static final SymbolType EXP = CONTEXT.getNonTerminalSymbolType("expression"),
-			BINOP = CONTEXT.getNonTerminalSymbolType("binop"),
-			PROGRAM = CONTEXT.getNonTerminalSymbolType("program");	
-	
+	private static final SymbolType INT = CONTEXT.getTerminalSymbolType("int-literal"), PLUS = CONTEXT
+			.getTerminalSymbolType("+"), MINUS = CONTEXT.getTerminalSymbolType("-"), TIMES = CONTEXT
+			.getTerminalSymbolType("*"), DIVIDED_BY = CONTEXT.getTerminalSymbolType("/"), LPAREN = CONTEXT
+			.getTerminalSymbolType("("), RPAREN = CONTEXT.getTerminalSymbolType(")");
+
+	private static final SymbolType EXP = CONTEXT.getNonTerminalSymbolType("expression"), BINOP = CONTEXT
+			.getNonTerminalSymbolType("binop"), UNOP = CONTEXT.getNonTerminalSymbolType("unop");
+
 	public static void testCalculatorGrammar() {
 		// create the lexer
 		LinkedHashSet<LexerAction> lexerActions = new LinkedHashSet<LexerAction>();
 		lexerActions.add(LexerAction.lexToken("[0-9]+", INT));
 		lexerActions.add(LexerAction.lexToken(Regex.escape("+"), PLUS));
-		lexerActions.add(LexerAction.lexToken(Regex.escape("-"), MINUS));		
+		lexerActions.add(LexerAction.lexToken(Regex.escape("-"), MINUS));
 		lexerActions.add(LexerAction.lexToken(Regex.escape("*"), TIMES));
 		lexerActions.add(LexerAction.lexToken(Regex.escape("/"), DIVIDED_BY));
 		lexerActions.add(LexerAction.lexToken(Regex.escape("("), LPAREN));
 		lexerActions.add(LexerAction.lexToken(Regex.escape(")"), RPAREN));
 		lexerActions.add(LexerAction.skip(LexerAction.DEFAULT_SET, "[ \t\r\n]+"));
 		Lexer lexer = new RegexLexerGenerator().generate(CONTEXT, lexerActions).lexer();
-		
+
 		LinkedHashSet<Production> productions = new LinkedHashSet<Production>();
-		productions.add(new Production(BINOP, EXP, CONTEXT.oneOf(PLUS, MINUS), EXP));
-		productions.add(new Production(BINOP, EXP, CONTEXT.oneOf(TIMES, DIVIDED_BY), EXP));
-		productions.add(new Production(EXP, BINOP));
+		productions.addAll(Production.makeOneOf(PLUS, MINUS));
+		productions.addAll(Production.makeOneOf(TIMES, DIVIDED_BY));
 		productions.add(new Production(EXP, INT));
 		productions.add(new Production(EXP, LPAREN, EXP, RPAREN));
-		// TODO not 100% clear if we should need this...
-		productions.add(new Production(PROGRAM, EXP, CONTEXT.eofType()));
-		for (Production production : new ArrayList<Production>(productions)) {
-			for (SymbolType type : production.childTypes()) {
-				Set<SymbolType> oneOfTypes = CONTEXT.getOneOfComponentTypes(type);
-				if (oneOfTypes != null) {
-					productions.addAll(Production.makeOneOf(oneOfTypes.toArray(new SymbolType[0])));
-				}
-			}
-		}
-		
-		Grammar grammar = new Grammar(CONTEXT, "calc", PROGRAM, productions, Precedence.createEmptyFunction());
-		
+		productions.add(new Production(UNOP, MINUS, EXP));
+		productions.add(new Production(BINOP, EXP, CONTEXT.oneOf(TIMES, DIVIDED_BY), EXP));
+		productions.add(new Production(BINOP, EXP, CONTEXT.oneOf(PLUS, MINUS), EXP));
+		productions.add(new Production(EXP, UNOP));
+		productions.add(new Production(EXP, BINOP));
+
+		Grammar grammar = new Grammar(CONTEXT, "calc", EXP, productions, Precedence.createEmptyFunction());
+
 		ParserGenerator.Result generatorResult = new RecursiveDescentGenerator().generate(grammar);
 		Utils.check(generatorResult.succeeded(), "failed to create parser");
-		
+
 		Parser parser = generatorResult.parser();
-		
+
 		test(lexer, parser, "1");
 		test(lexer, parser, "(10)");
 		test(lexer, parser, "1 + 2");
+		test(lexer, parser, "(1 + 2)");
 		test(lexer, parser, "1 + 2 + 3");
 		test(lexer, parser, "1 * 2 + 3");
 		test(lexer, parser, "(1 + 2) + 3 * (4 + 5) + 6");
 		test(lexer, parser, "1/2/3/4*5/2/4/5");
-		test(lexer, parser, "1+2-3*4/5+6-7+8*9/10");			
+		test(lexer, parser, "1+2-3*4/5+6-7+8*9/10");
+		test(lexer, parser, "-1");
+		Symbol result = test(lexer, parser, "-1 - 2");
+		checkVisitOrder(result, BINOP, UNOP, MINUS, INT, MINUS, INT);
+		test(lexer, parser, "-1 - -2");
+		result = test(lexer, parser, "-(1 * -2) +-2*3");
+		checkVisitOrder(result, BINOP, UNOP, MINUS, LPAREN, BINOP, INT, TIMES, UNOP, MINUS, INT, RPAREN, PLUS, BINOP, UNOP,
+				MINUS, INT, TIMES, INT);
 	}
-	
+
 	private static Symbol test(Lexer lexer, Parser parser, String text) {
 		Iterator<Symbol> tokens = lexer.lex(new StringReader(text));
-		
+
 		Parser.Result result = parser.parse(tokens);
 		Utils.check(result.succeeded(), "parse failed for " + text);
-		Utils.check(result.parseTree().text().equals(text), "reconstruction failed for " + text + " was: " + result.parseTree().text());
-		
+		Utils.check(result.parseTree().text().equals(text), "reconstruction failed for " + text + " was: "
+				+ result.parseTree().text());
+
 		// precedence check
 		Symbol canonicalParseTree = AutoGeneratedSymbolTypeCanonicalizer.canonicalize(result.parseTree());
 		new OperatorCheckVisitor().check(canonicalParseTree);
-		
-		return result.parseTree();
+
+		return canonicalParseTree;
 	}
-	
+
 	private static class OperatorCheckVisitor extends SymbolVisitor<Object> {
-		public void check(Symbol symbol) { this.visit(symbol); }
-		
+		public void check(Symbol symbol) {
+			this.visit(symbol);
+		}
+
 		@Override
 		protected Object visitNonTerminal(Symbol symbol) {
 			SymbolType operator = this.getOperatorType(symbol);
-			if (operator == TIMES) {
-				SymbolType leftOperator = this.getOperatorType(symbol.children().get(0)),
-						rightOperator = this.getOperatorType(symbol.children().get(1));
-				Utils.check(leftOperator != PLUS, "bad left");
-				Utils.check(rightOperator != PLUS, "bad right");
+			if (operator == TIMES || operator == DIVIDED_BY) {
+				SymbolType leftOperator = this.getOperatorType(symbol.children().get(0)), rightOperator = this
+						.getOperatorType(symbol.children().get(1));
+				Utils.check(leftOperator != PLUS && leftOperator != MINUS, "bad left");
+				Utils.check(rightOperator != PLUS && leftOperator != MINUS, "bad right");
 			}
-			
+
 			return null;
 		}
-		
+
 		private SymbolType getOperatorType(Symbol symbol) {
-			return symbol.type() == BINOP ? symbol.children().get(1).type() : null;
+			return symbol.type() == EXP && symbol.children().size() == 1 ? this.getOperatorType(symbol.children()
+					.get(0)) : symbol.type() == BINOP ? symbol.children().get(1).type() : null;
 		}
-		
+
 	}
-	
+
+	private static void checkVisitOrder(Symbol symbol, SymbolType... symbolTypes) {
+		List<Symbol> symbols = new VisitOrderFinder().run(symbol);
+
+		for (int i = 0; i < Math.min(symbols.size(), symbolTypes.length); ++i) {
+			if (!symbols.get(i).type().equals(symbolTypes[i])) {
+				Utils.err(String.format("@%s found %s instead of %s", i, symbols.get(i).type(), symbolTypes[i]));
+			}
+		}
+		if (symbols.size() != symbolTypes.length) {
+			Utils.err(String.format("expected %s symbols, found %s", symbolTypes.length, symbols.size()));
+		}
+	}
+
+	private static class VisitOrderFinder extends SymbolVisitor<Object> {
+		private List<Symbol> symbols;
+
+		public List<Symbol> run(Symbol symbol) {
+			this.symbols = new ArrayList<Symbol>();
+			this.visit(symbol);
+			return this.symbols;
+		}
+
+		@Override
+		protected Object visit(Symbol symbol) {
+			if (!symbol.type().equals(EXP) && !symbol.type().equals(CONTEXT.startType())
+					&& !symbol.type().equals(CONTEXT.eofType())) {
+				this.symbols.add(symbol);
+			}
+			return super.visit(symbol);
+		}
+	}
+
 	public static void main(String[] args) {
 		testCalculatorGrammar();
-		
+
 		System.out.println("All Recursive Descent tests passed");
 	}
 }
