@@ -15,7 +15,7 @@ import compiler.parse.RecursiveDescentAnalyzer.Rule;
 final class RecursiveDescentPrecedenceHelper {
 	private final RecursiveDescentAnalyzer analyzer;
 	private final List<RuleInfo> stack = new ArrayList<RuleInfo>();
-	private int version, stackTop = -1, usedStackTop = -1;
+	private int version, stackTop = -1;
 	
 	public RecursiveDescentPrecedenceHelper(RecursiveDescentAnalyzer analyzer) {
 		this.analyzer = analyzer;
@@ -45,7 +45,6 @@ final class RecursiveDescentPrecedenceHelper {
 	
 	public void popRuleScope() {
 		--this.stackTop;
-		this.usedStackTop = Math.min(this.stackTop, this.usedStackTop);
 	}
 	
 	public boolean allow(Production production, int tokenIndex) {
@@ -57,7 +56,6 @@ final class RecursiveDescentPrecedenceHelper {
 			}
 			
 			if (!this.analyzer.allow(production, ruleInfo.rule, ruleInfo.production)) {
-				this.usedStackTop = Math.max(this.usedStackTop, i);
 				return false;
 			}
 		}
@@ -66,7 +64,7 @@ final class RecursiveDescentPrecedenceHelper {
 	}
 	
 	public int cacheVersion() {
-		return this.usedStackTop >= 0 ? this.stack.get(this.usedStackTop).version : 0;
+		return this.stackTop >= 0 ? this.stack.get(this.stackTop).version : 0;
 	}
 	
 	private static class RuleInfo {

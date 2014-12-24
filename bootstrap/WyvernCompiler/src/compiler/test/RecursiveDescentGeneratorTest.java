@@ -87,6 +87,13 @@ public class RecursiveDescentGeneratorTest {
 		result = test(lexer, parser, "-(1 * -2) +-2*3");
 		checkVisitOrder(result, BINOP, UNOP, MINUS, LPAREN, BINOP, INT, TIMES, UNOP, MINUS, INT, RPAREN, PLUS, BINOP, UNOP,
 				MINUS, INT, TIMES, INT);
+		
+		// large test
+		StringBuilder sb = new StringBuilder("1");
+		for (int i = 0; i < 1000; ++i) {
+			sb.append(i % 2 == 0 ? "*" : "+").append("1");
+		}
+		test(lexer, parser, sb.toString());
 	}
 
 	private static Symbol test(Lexer lexer, Parser parser, String text) {
