@@ -109,3 +109,10 @@ universal type wyvern.collections.MutableList<T> is MutableList<T>
 
 * idea from roslyn: "trivia" to describe things like comments, whitespace. Tokens have leading and trailing triva
 * idea: dfa-based parser using regex concepts -> could have terrible error handling..., also not sure it would work because regular grammars differ from CFGs
+
+* idea: C#-style yield or await can be an attribute. For example, let's say we have a yield attribute. We can define the following syntactic transformations for methods with yield:
+	- add a dummy YieldCollector<T> variable at beginning of the method
+	- replace calls to yield [expression]; with collector.Add([expression]);
+	- replace calls to return with return collector;
+	- add return collector; at the end of the method
+Then, post type-check, we can again visit the method (which we can tag in the first step with another attribute). At this point, we can achieve laziness via creation of an iterator class with a state machine
